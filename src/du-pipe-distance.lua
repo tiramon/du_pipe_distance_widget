@@ -3,17 +3,17 @@ require("atlas")
 unit.hide()
 
 function calcDistance(origCenter, destCenter, location)
-     pipe = (destCenter - origCenter):normalize()
-     r = (location-origCenter):dot(pipe) / pipe:dot(pipe)
-     if r < 0 then
-        return (location - origCenter):len()
-     else if r > pipe then
-        return (location - destCenter):len()
-     end
-     L = origCenter + (r * pipe)
-     pipeDistance =  (L - location):len()
-
-    return pipeDistance
+    pipe = (destCenter - origCenter):normalize()
+    r = (location-origCenter):dot(pipe) / pipe:dot(pipe)
+    if r <= 0. then
+       return (location-origCenter):len()
+    else if r >= (destCenter - origCenter):len() then
+       return (location-destCenter):len()
+    end
+    L = origCenter + (r * pipe)
+    pipeDistance =  (L - location):len()
+   
+   return pipeDistance
 end
 
 function calcDistanceStellar(stellarObjectOrigin, stellarObjectDestination, currenLocation)
