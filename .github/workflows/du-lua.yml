@@ -21,3 +21,8 @@ jobs:
       - run: npm i -g @wolfe-labs/du-luac
       - run: mkdir -p out/development out/production
       - run: ~/.npm-global/bin/du-lua build
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v2
+        with:
+          name: du-pipe-distance.json
+          path: out/production/du-pipe-distance.json
