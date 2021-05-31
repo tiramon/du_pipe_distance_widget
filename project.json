@@ -1,0 +1,29 @@
+{
+  "name": "du-pipe-distance",
+  "description": "Calculator for current position to nearest pipe",
+  "sourcePath": "src",
+  "outputPath": "out",
+  "builds": {
+    "main": {
+      "name": "main",
+      "slots": {
+        "core": {
+          "name": "core",
+          "type": "core"
+        }
+      }
+    }
+  },
+  "targets": {
+    "development": {
+      "name": "development",
+      "handleErrors": true,
+      "minify": false
+    },
+    "production": {
+      "name": "production",
+      "handleErrors": false,
+      "minify": true
+    }
+  }
+}
