@@ -1,4 +1,4 @@
-name: Node.js CI
+name: Node.js Du-Lua
 
 on:
   push:
@@ -10,12 +10,13 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
+    env:
+        NPM_CONFIG_PREFIX: "~/.npm-global"
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
-          node-version: 15.x
+          node-version: 14.x
       - run: npm i -g @wolfe-labs/du-luac
-      - run: du-lua build
+      - run: ~/.npm-global/bin/du-lua build

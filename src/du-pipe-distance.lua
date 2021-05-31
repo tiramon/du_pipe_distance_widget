@@ -24,7 +24,7 @@ function calcDistanceStellar(stellarObjectOrigin, stellarObjectDestination, curr
 end
 
 function refreshPipeData(currentLocation)
-    while true
+    while true do
         smallestDistance = nil;
         nearestPlanet = nil;
 
