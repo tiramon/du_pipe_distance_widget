@@ -18,7 +18,7 @@ A nice and good visualized explaination for a pipe can also be found here https:
 
 ### links
 
-The programming board must be linked to the core.
+The programming board must be linked to the core, slot must be renamed to 'core'.
 
 ### installing the script
 
