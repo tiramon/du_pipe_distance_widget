@@ -6,7 +6,7 @@ A pipe is the direct connection between 2 planets, it is the shortest way. But i
 
 So the safest way to travel to the outer planets is keep away from the pipe. Because space radar has a range of 4su and the pirate is maybe not in the center of the pipe and you don't him want to see you, you should take some distance. I often fly with a distance of 8+su to the pipe center.
 
-A nice and goo visualized explaination for a pipe can also be found here https://www.reddit.com/r/DualUniverse/comments/lg2zsn/a_basic_guide_to_the_pipe_made_in_ms_paint/
+A nice and good visualized explaination for a pipe can also be found here https://www.reddit.com/r/DualUniverse/comments/lg2zsn/a_basic_guide_to_the_pipe_made_in_ms_paint/
 
 # Installation
 

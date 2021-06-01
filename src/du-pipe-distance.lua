@@ -3,34 +3,34 @@ require("atlas")
 unit.hide()
 
 function calcDistance(origCenter, destCenter, location)
-    pipe = (destCenter - origCenter):normalize()
-    r = (location-origCenter):dot(pipe) / pipe:dot(pipe)
+    local pipe = (destCenter - origCenter):normalize()
+    local r = (location-origCenter):dot(pipe) / pipe:dot(pipe)
     if r <= 0. then
        return (location-origCenter):len()
-    else if r >= (destCenter - origCenter):len() then
+    elseif r >= (destCenter - origCenter):len() then
        return (location-destCenter):len()
     end
-    L = origCenter + (r * pipe)
+    local L = origCenter + (r * pipe)
     pipeDistance =  (L - location):len()
-   
-   return pipeDistance
+
+    return pipeDistance
 end
 
 function calcDistanceStellar(stellarObjectOrigin, stellarObjectDestination, currenLocation)
-    origCenter = vec3(stellarObjectOrigin.center)
-    destCenter = vec3(stellarObjectDestination.center)
+    local origCenter = vec3(stellarObjectOrigin.center)
+    local destCenter = vec3(stellarObjectDestination.center)
 
     return calcDistance(origCenter, destCenter, currenLocation)
 end
 
-function refreshPipeData(currentLocation)
+refreshPipeData = function (currentLocation)
     while true do
-        smallestDistance = nil;
-        nearestPlanet = nil;
+        local smallestDistance = nil;
+        local nearestPlanet = nil;
 
         for obj in pairs(_stellarObjects) do
-            planetCenter = vec3(_stellarObjects[obj].center)
-            distance = vec3(currentLocation - planetCenter):len() 
+            local planetCenter = vec3(_stellarObjects[obj].center)
+            local distance = vec3(currentLocation - planetCenter):len() 
 
             if (smallestDistance == nil or distance < smallestDistance) then
                 smallestDistance = distance;
@@ -44,7 +44,7 @@ function refreshPipeData(currentLocation)
         end
 
         if showClosestPipe == true or showClosestPipeDist == true or 
-        showAliothClosestPipe == true or showAliothClosestPipeDist == true then
+                showAliothClosestPipe == true or showAliothClosestPipeDist == true then
             closestPlanet = _stellarObjects[nearestPlanet]
             nearestPipeDistance = nil
             nearestAliothPipeDistance= nil
@@ -65,12 +65,6 @@ function refreshPipeData(currentLocation)
                             sortestAliothPipeKey2Id = obj2;
                         end
                     end
-                end
-            end
-
-            if closestPlanet.name == "Alioth" then
-                nearestAliothPipeDistance = nearestPipeDistance;
-                sortestAliothPipeKeyId = sortestPipeKeyId;
                 end
             end
 
@@ -185,4 +179,3 @@ system:onEvent("stop",
         system.destroyWidgetPanel(panelid)
     end
 )
---unit.setTimer("updateInfo", 2)

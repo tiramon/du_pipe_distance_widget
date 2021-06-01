@@ -1,5 +1,3 @@
--- Here's to the crazy ones. The misfits. The rebels. The troublemakers.
-
 _stellarObjects = {
     [0] = {
         name = "Alioth",
