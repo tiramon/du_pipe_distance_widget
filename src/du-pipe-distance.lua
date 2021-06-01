@@ -88,7 +88,7 @@ refreshPipeData = function (currentLocation)
                 system.updateData(closestAliothPipeDistDataId, json.encode(closestAliothPipeDistData))
             end
         end
-        coroutine.yield()
+        currentLocation = coroutine.yield()
     end
 end
 
