@@ -1,5 +1,7 @@
 # du-pipe-distance
 
+[![Node.js Du-Lua](https://github.com/tiramon/du_pipe_distance_widget/actions/workflows/du-lua.yml/badge.svg)](https://github.com/tiramon/du_pipe_distance_widget/actions/workflows/du-lua.yml)
+
 Simple script to calculate your distance to the center of the nearest pipe.
 
 A pipe is the direct connection between 2 planets, it is the shortest way. But it is also the most dangerous connection between both planets because pirates are often waiting in the pipe or warping between the planets to locate ships in the pipe and intercept them. 
@@ -16,7 +18,7 @@ A nice and good visualized explaination for a pipe can also be found here https:
 
 ### links
 
-The programming board must be linked to the core.
+The programming board must be linked to the core, slot must be renamed to 'core'.
 
 ### installing the script
 
