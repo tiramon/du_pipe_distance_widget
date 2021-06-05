@@ -1,7 +1,9 @@
 require("atlas")
 
 unit.hide()
-
+--[[
+    calculates the distance between the location and the closest point of the line connecting the vec3 origCenter and destCenter
+]]--
 function calcDistance(origCenter, destCenter, location)
     local pipe = (destCenter - origCenter):normalize()
     local r = (location-origCenter):dot(pipe) / pipe:dot(pipe)
@@ -16,6 +18,9 @@ function calcDistance(origCenter, destCenter, location)
     return pipeDistance
 end
 
+--[[
+    calculates the distance between the location and the closest point of the line connecting the center of the planets stellarObjectOrigin and stellarObjectDestination
+]]--
 function calcDistanceStellar(stellarObjectOrigin, stellarObjectDestination, currenLocation)
     local origCenter = vec3(stellarObjectOrigin.center)
     local destCenter = vec3(stellarObjectDestination.center)
@@ -23,6 +28,11 @@ function calcDistanceStellar(stellarObjectOrigin, stellarObjectDestination, curr
     return calcDistance(origCenter, destCenter, currenLocation)
 end
 
+--[[
+    refresh function for closest pipe calculation and visualization
+    it calculates the closest pipes and depending on current speed and current velocity vector switchs origin and destination
+    then it refreshs the closests and closest alioth pipe information in the widget and redraws the visualization
+]]--
 refreshPipeData = function (currentLocation)
     while true do
         local smallestDistance = nil;
@@ -43,33 +53,41 @@ refreshPipeData = function (currentLocation)
             system.updateData(planetInfoDataId, json.encode(planetInfoData))
         end
 
+        local nearestPlanet1
+        local nearestPlanet2
+        local aliothPlanet1
+        local aliothPlanet2
+
         if showClosestPipe == true or showClosestPipeDist == true or 
                 showAliothClosestPipe == true or showAliothClosestPipeDist == true then
             closestPlanet = _stellarObjects[nearestPlanet]
             nearestPipeDistance = nil
             nearestAliothPipeDistance= nil
-            for obj in pairs(_stellarObjects) do
-                for obj2 in pairs(_stellarObjects) do
+            for obj, currentPlanet1 in pairs(_stellarObjects) do
+                for obj2, currentPlanet2 in pairs(_stellarObjects) do
                     if (obj2 > obj) then
-                        pipeDistance = calcDistanceStellar(_stellarObjects[obj], _stellarObjects[obj2], currentLocation)
+                        pipeDistance = calcDistanceStellar(currentPlanet1, currentPlanet2, currentLocation)
 
                         if nearestPipeDistance == nil or pipeDistance < nearestPipeDistance then
                             nearestPipeDistance = pipeDistance;
-                            sortestPipeKeyId = obj;
-                            sortestPipeKey2Id = obj2;
+                            nearestPlanet1 = currentPlanet1
+                            nearestPlanet2 = currentPlanet2
                         end
 
-                        if _stellarObjects[obj].name == "Alioth" and (nearestAliothPipeDistance == nil or pipeDistance < nearestAliothPipeDistance) then
+                        if currentPlanet1.name == "Alioth" and (nearestAliothPipeDistance == nil or pipeDistance < nearestAliothPipeDistance) then
                             nearestAliothPipeDistance = pipeDistance;
-                            sortestAliothPipeKeyId = obj;
-                            sortestAliothPipeKey2Id = obj2;
+                            aliothPlanet1 = currentPlanet1
+                            aliothPlanet2 = currentPlanet2
                         end
                     end
                 end
+                currentLocation = coroutine.yield()
             end
+            nearestPlanet1, nearestPlanet2 = switch(nearestPlanet1, nearestPlanet2, currentLocation)
+            aliothPlanet1, aliothPlanet2 = switch(aliothPlanet1, aliothPlanet2, currentLocation)
 
             if showClosestPipe == true then
-                closestPipeData.value = _stellarObjects[sortestPipeKeyId].name .. " - " .. _stellarObjects[sortestPipeKey2Id].name
+                closestPipeData.value = nearestPlanet1.name .. " - " .. nearestPlanet2.name
                 system.updateData(closestPipeDataId, json.encode(closestPipeData))
             end
 
@@ -79,7 +97,7 @@ refreshPipeData = function (currentLocation)
             end
 
             if showAliothClosestPipe == true then
-                closestAliothPipeData.value = _stellarObjects[sortestAliothPipeKeyId].name .. " - " .. _stellarObjects[sortestAliothPipeKey2Id].name
+                closestAliothPipeData.value = aliothPlanet1.name .. " - " .. aliothPlanet2.name
                 system.updateData(closestAliothPipeDataId, json.encode(closestAliothPipeData))
             end
 
@@ -87,9 +105,294 @@ refreshPipeData = function (currentLocation)
                 closestAliothPipeDistData.value = string.format("%03.2f", nearestAliothPipeDistance / 200000.0)
                 system.updateData(closestAliothPipeDistDataId, json.encode(closestAliothPipeDistData))
             end
+
+            currentSpeed = lastPosition - currentLocation
+            lastPosition = currentLocation
+
+            if showVisualization == true then
+                draw(nearestPlanet1, nearestPlanet2, currentLocation, nearestPipeDistance)
+            end
+            
+           
+            if currentLocation == nil then
+                system.print("shutting down pipe info")
+                break;
+            end
         end
-        currentLocation = coroutine.yield()
     end
+end
+
+--[[
+    calculates the current radius or similar base on both planetary values and progress of space traveked between
+]]--
+function calcProportion(origin, destination, percentDone, percentVisible, add)
+    local percent = math.max(0,math.min(1, add and (percentDone + percentVisible) or (percentDone - percentVisible)))
+    return destination * percent + origin * (1-percent)
+end
+
+--[[
+    formats the given distance in meter in km, su depending on size
+]]--
+function formatDistance(distanceInMeter)
+    if (distanceInMeter > 0.5 * 200*1000) then
+        return string.format("%.2f",distanceInMeter/(200*1000))
+    elseif (distanceInMeter > 500) then
+        return string.format("%.2f",distanceInMeter/1000)
+    else 
+        return string.format("%.2f", distanceInMeter)
+    end
+end
+
+--[[
+    returns the right unit for the result of formatDistance
+]]--
+function unitDistance(distanceInMeter)
+    if (distanceInMeter > 0.5 * 200*1000) then
+        return 'su'
+    elseif (distanceInMeter > 500) then
+        return 'km'
+    else 
+        return 'm'
+    end
+end
+
+--[[
+    calculates the signed angle between vecA and vecB on plane normal
+]]--
+function signedRotationAngle(normal, vecA, vecB)
+    return math.atan(vecA:cross(vecB):dot(normal), vecA:dot(vecB))
+end
+
+--[[
+    switches planet1 and planet2 depending on current speed and movement direction
+]]--
+function switch(planet1, planet2, location)
+    local origCenter = vec3(planet1.center);
+    local destCenter = vec3(planet2.center);
+    local pipe = (destCenter - origCenter)
+    local pipeDirection = pipe:normalize()
+
+    system.print(currentSpeed:len())
+    local switch = false
+    if (currentSpeed:len() < 2000 and (location-origCenter) < (location-destCenter)) then
+        switch = true        
+    else
+        local movementVector = currentSpeed:normalize()
+        local pipe2movement = signedRotationAngle(vec3(1,1,1), movementVector, pipeDirection)
+        system.print('moving '..tostring(pipeDirection) .. ' '..tostring(movementVector).. ' '..pipe2movement)
+
+        if math.abs(pipe2movement) > (math.pi/2) then
+            system.print('switch target destination')
+            switch = true
+        end
+    end
+
+    if switch then
+        return planet2, planet1
+    else 
+        return planet1, planet2
+    end
+end
+
+--[[
+    draws the visualization for the pipe given in the parameters
+]]--
+function draw(planet1, planet2, location, distance)
+    local shipWidth = 12
+    local shipHeight = 10
+
+    local distLeftSide = 25
+    local distScreenBorders = 600
+
+    local upperPlanetY = 25
+    local lowerPlanetY = upperPlanetY + distScreenBorders
+    local midY = (upperPlanetY+lowerPlanetY)/2
+
+    local visibleMeter =  math.max(10*200*1000, distance)
+    local scale = 1 * (2*visibleMeter) / distScreenBorders
+
+    local origCenter = vec3(planet1.center);
+    local destCenter = vec3(planet2.center);
+    local pipe = (destCenter - origCenter)
+
+    local pipePercentDone = (location-origCenter):dot(pipe) / pipe:dot(pipe)
+
+    local pipePercentVisible = 100*visibleMeter/pipe:len() / 100
+    local pipePercentVisibleUp = pipePercentVisible
+    local pipePercentVisibleDown = pipePercentVisible
+    
+    local pipeLengthScaled = pipe:len() / scale
+
+    local origRadiusScaled = planet1.radius / scale
+    local origAtmoScaled = (planet1.radius + planet1.noAtmosphericDensityAltitude) / scale
+    local origSafeZoneScaled = (planet1.radius + planet1.safeAreaEdgeAltitude) / scale
+
+    local destRadiusScaled = planet2.radius / scale
+    local destAtmoScaled = (planet2.radius + planet2.noAtmosphericDensityAltitude) / scale
+    local destSafeZoneScaled = (planet2.radius + planet2.safeAreaEdgeAltitude) / scale
+
+    local scannerRange = 2 * 200*1000 /scale
+
+    local distanceScaled = distance /scale
+    
+    
+    local planetStuff = ''
+    local rotateAngle  = 0
+    local shipY = midY
+    if (pipePercentDone > 1.0-pipePercentVisible and pipePercentDone < 1.0+pipePercentVisible) then
+        --system.print('near target')
+        pipePercentVisibleDown = pipePercentDone-1.0
+        lowerPlanetY = (midY-(pipePercentVisibleDown*pipeLengthScaled))
+        local pipeFlownFromCenter = pipePercentVisibleDown*pipe:len()
+        if (pipePercentDone > 100.0 and math.abs(pipeFlownFromCenter) > planet2.radius) then
+            rotateAngle = 90
+            shipY = lowerPlanetY
+        elseif pipeFlownFromCenter < planet2.radius then
+            local distCenter = (location-vec3(planet2.center)):len()
+            local L = vec3(planet1.center) + (pipePercentDone * pipe)
+            local pipeDistance =  (L - location):len()
+            rotateAngle = math.asin(pipeDistance / distCenter)
+            shipY = lowerPlanetY
+        end
+        system.print(rotateAngle)
+
+        planetStuff = [[
+                <path id="scanner" fill="none" stroke-dasharray="5" stroke="black" d="
+                    M ]]..(distLeftSide+(calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRange))..[[,]]..upperPlanetY..[[ 
+                    L ]]..(distLeftSide+(calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true ) + scannerRange))..[[,]]..lowerPlanetY..[[ 
+                    A ]]..destSafeZoneScaled..[[ ]]..destSafeZoneScaled..[[ 0 0 1 ]]..(distLeftSide-(calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true ) + scannerRange))..[[ ]]..lowerPlanetY.. [[
+                    M ]]..(distLeftSide+(calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRange))..[[,]]..upperPlanetY..[[ 
+                    Z"/>
+                <circle id="planet-safezone" cx="]]..distLeftSide..[[" cy="]]..lowerPlanetY..[[" r="]]..destSafeZoneScaled..[[" fill="green" fill-opacity=".25"/>
+                <circle id="planet-atmo"     cx="]]..distLeftSide..[[" cy="]]..lowerPlanetY..[[" r="]]..destAtmoScaled..[[" fill="green" fill-opacity=".5"/>
+                <circle id="planet-surface"  cx="]]..distLeftSide..[[" cy="]]..lowerPlanetY..[[" r="]]..destRadiusScaled..[[" fill="green"/>
+                <text id="planet-name" x="]]..distLeftSide..[[" y="]]..(lowerPlanetY-5)..[[">]]..planet2.name..[[</text>
+        ]]
+    elseif (pipePercentDone > 0.-pipePercentVisible and pipePercentDone < 0.+pipePercentVisible) then
+        --system.print('near origin')
+        pipePercentVisibleUp = pipePercentDone
+        upperPlanetY = (midY-pipePercentVisibleUp*pipeLengthScaled)
+        local pipeFlownFromCenter = pipePercentVisibleUp*pipe:len()
+        if pipeFlownFromCenter < 0 and math.abs(pipeFlownFromCenter) > planet1.radius then
+            rotateAngle = -90
+            shipY = upperPlanetY
+        elseif pipeFlownFromCenter < planet1.radius then
+            local distCenter = (location-vec3(planet1.center)):len()
+            local L = vec3(planet1.center) + (pipePercentDone * pipe)
+            local pipeDistance =  (L - location):len()
+            rotateAngle = -math.asin(pipeDistance / distCenter)
+            shipY = upperPlanetY
+        end
+        system.print(rotateAngle)
+        planetStuff = [[
+                <path id="scanner" fill="none" stroke-dasharray="5" stroke="black" d="
+                    M ]]..(distLeftSide-(calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRange))..[[,]]..upperPlanetY..[[ 
+                    A ]]..origSafeZoneScaled..[[ ]]..origSafeZoneScaled..[[ 0 0 1 ]]..(distLeftSide+(calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true) + scannerRange))..[[ ]]..upperPlanetY.. [[
+                    L ]]..(distLeftSide+(calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true) + scannerRange))..[[,]]..lowerPlanetY..[[ 
+                    M ]]..(distLeftSide-(calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRange))..[[,]]..upperPlanetY..[[ 
+                    Z"/>
+
+                <circle id="planet-safezone" cx="]]..distLeftSide..[[" cy="]]..upperPlanetY..[[" r="]]..origSafeZoneScaled..[[" fill="green" fill-opacity=".25"/>
+                <circle id="planet-atmo"     cx="]]..distLeftSide..[[" cy="]]..upperPlanetY..[[" r="]]..origAtmoScaled..[[" fill="green" fill-opacity=".5"/>
+                <circle id="planet-surface"  cx="]]..distLeftSide..[[" cy="]]..upperPlanetY..[[" r="]]..origRadiusScaled..[[" fill="green"/>
+                <text id="planet-name" x="]]..distLeftSide..[[" y="]]..(upperPlanetY+20)..[[">]]..planet1.name..[[</text>
+        ]]
+    elseif (pipePercentDone <= 1.-pipePercentVisible and pipePercentDone >= pipePercentVisible) then
+        --system.print('in lane')
+        planetStuff = [[
+                <path id="scanner" fill="none" stroke-dasharray="5" stroke="black" d="
+                    M ]]..(distLeftSide+(calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRange))..[[,]]..upperPlanetY..[[
+                    L ]]..(distLeftSide+(calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true) + scannerRange))..[[,]]..lowerPlanetY..[[
+                    M ]]..(distLeftSide+(calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRange))..[[,]]..upperPlanetY..[[
+                    Z"/>
+        ]]
+    end
+    
+    local  svg = [[
+        <svg xmlns="http://www.w3.org/2000/svg" width="]]..(distLeftSide + 200)..[[" height="]]..(distScreenBorders + 50)..[[">
+            <path id="pipe-safezone" fill="grey" fill-opacity=".25" d="
+                M ]]..(distLeftSide-calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..upperPlanetY..[[ 
+                L ]]..(distLeftSide-calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..lowerPlanetY..[[ 
+                L ]]..(distLeftSide+calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..lowerPlanetY ..[[ 
+                L ]]..(distLeftSide+calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..upperPlanetY..[[ 
+                Z"/>
+            <path id="pipe-atmo" fill="grey" fill-opacity=".5"  d="
+                M ]]..(distLeftSide-calcProportion(origAtmoScaled, destAtmoScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..upperPlanetY..[[ 
+                L ]]..(distLeftSide-calcProportion(origAtmoScaled, destAtmoScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..lowerPlanetY..[[ 
+                L ]]..(distLeftSide+calcProportion(origAtmoScaled, destAtmoScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..lowerPlanetY..[[ 
+                L ]]..(distLeftSide+calcProportion(origAtmoScaled, destAtmoScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..upperPlanetY..[[ 
+                Z"/>
+            <path id="pipe-surface" fill="grey" fill-opacity=".75" d="
+                M ]]..(distLeftSide-calcProportion(origRadiusScaled, destRadiusScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..upperPlanetY..[[ 
+                L ]]..(distLeftSide-calcProportion(origRadiusScaled, destRadiusScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..lowerPlanetY..[[ 
+                L ]]..(distLeftSide+calcProportion(origRadiusScaled, destRadiusScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..lowerPlanetY..[[ 
+                L ]]..(distLeftSide+calcProportion(origRadiusScaled, destRadiusScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..upperPlanetY..[[ 
+                Z"/>
+
+            <path id="pipe-center" stroke="black" stroke-width="1" d="
+                M ]]..distLeftSide..[[,]]..upperPlanetY..[[ 
+                L ]]..distLeftSide..[[,]]..lowerPlanetY..[[ 
+                Z"/>
+        ]] .. planetStuff .. [[
+                <text text-anchor="end" y="]]..(midY+10)..[[">
+                    <tspan x="]]..(95 + distLeftSide)..[[" >]]..string.format("%.2f",pipePercentDone*100)..[[</tspan>  
+                    <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(distance)..[[</tspan>  
+                    <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-calcProportion(planet1.radius, planet2.radius, pipePercentDone, 0, false)))..[[</tspan>
+                    <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-calcProportion(planet1.radius+planet1.noAtmosphericDensityAltitude, planet2.radius+planet2.noAtmosphericDensityAltitude, pipePercentDone, 0, false)))..[[</tspan>
+                    <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-calcProportion(planet1.radius+planet1.safeAreaEdgeAltitude, planet2.radius+planet2.safeAreaEdgeAltitude, pipePercentDone, 0, false)))..[[</tspan>                    
+                    <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-calcProportion(planet1.radius+planet1.safeAreaEdgeAltitude, planet2.radius+planet2.safeAreaEdgeAltitude, pipePercentDone, 0, false)-scannerRange))..[[</tspan>
+                    <tspan x="]]..(95 + distLeftSide)..[[" dy="20" fill="none">0</tspan>
+                </text>
+
+                <text y="]]..(midY+10)..[[">
+                    <tspan x="]]..(100 + distLeftSide)..[[">%</tspan>
+                    <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(distance)..[[</tspan>
+                    <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-calcProportion(planet1.radius, planet2.radius, pipePercentDone, 0, false)))..[[</tspan>
+                    <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-calcProportion(planet1.radius+planet1.noAtmosphericDensityAltitude, planet2.radius+planet2.noAtmosphericDensityAltitude, pipePercentDone, 0, false)))..[[</tspan>
+                    <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-calcProportion(planet1.radius+planet1.safeAreaEdgeAltitude, planet2.radius+planet2.safeAreaEdgeAltitude, pipePercentDone, 0, false)))..[[</tspan>
+                    <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-calcProportion(planet1.radius+planet1.safeAreaEdgeAltitude, planet2.radius+planet2.safeAreaEdgeAltitude, pipePercentDone, 0, false)-scannerRange))..[[</tspan>
+                </text>
+                <text y="]]..(midY+10)..[[">
+                    <tspan x="]]..(125 + distLeftSide)..[["></tspan>
+                    <tspan x="]]..(125 + distLeftSide)..[[" dy="20">center</tspan>
+                    <tspan x="]]..(125 + distLeftSide)..[[" dy="20">surface</tspan>
+                    <tspan x="]]..(125 + distLeftSide)..[[" dy="20">atmo</tspan>
+                    <tspan x="]]..(125 + distLeftSide)..[[" dy="20">safe</tspan>
+                    <tspan x="]]..(125 + distLeftSide)..[[" dy="20">scanner</tspan>
+                </text>
+        ]]    
+        if rotateAngle == 0 then
+--            system.print('no rotate')
+            svg = svg .. [[
+                    <g>
+                        <circle cx="]]..distLeftSide..[[" cy="]]..midY..[[" r="1" fill="black"/>
+                        <line x1="]]..distLeftSide..[[" y1="]]..midY..[[" x2="]]..(distLeftSide+distanceScaled)..[[" y2="]]..midY..[[" stroke="black" stroke-width="1"/>
+
+                        <path id="ship" fill="black" d="M ]]..(shipWidth/2)..[[,0 L 0,]]..shipHeight..[[ L ]]..shipWidth..[[,]]..shipHeight..[[ Z"/ transform="translate(]]..(distLeftSide+ distanceScaled-(shipWidth/2))..[[,]]..(midY-(shipHeight/2))..[[)">
+                    </g>
+                </svg>
+            ]] 
+        else 
+--            system.print('rotate')
+            svg = svg .. [[
+                    <g transform="rotate(]]..rotateAngle..[[ ]]..distLeftSide..[[ ]]..shipY..[[)">
+                        <circle cx="]]..distLeftSide..[[" cy="]]..shipY..[[" r="1" fill="black"/>
+                        <line x1="]]..distLeftSide..[[" y1="]]..shipY..[[" x2="]]..(distLeftSide+distanceScaled)..[[" y2="]]..shipY..[[" stroke="black" stroke-width="1"/>
+
+                        <path id="ship" fill="black" d="M ]]..(shipWidth/2)..[[,]]..shipHeight..[[ L 0,0 L ]]..shipWidth..[[,0 Z"/ transform="translate(]]..(distLeftSide+ distanceScaled-(shipWidth/2))..[[,]]..(shipY-(shipHeight/2))..[[) ">
+                    </g>
+                </svg>
+            ]]
+        end
+    system.showScreen(1)
+    system.setScreen([[
+        <div style="position: absolute; left: ]]..visualizationX..[[px; top:]]..visualizationY..[[px;">
+            <svg width="]]..((distLeftSide + 200)*visualizationScale)..[[" height="]]..((distScreenBorders + 50)*visualizationScale)..[[" viewBox="0 0 ]]..(distLeftSide + 200)..[[ ]]..(distScreenBorders + 50)..[[">
+                <rect width="100%" height="100%" rx="10" ry="10" fill="white" fill-opacity="]]..visualizationOpacity..[["/>
+                ]]..svg..[[
+            </svg>
+        </div>]])
+    
 end
 
 local panelName = "Pipe info" --export: panel name
@@ -98,6 +401,11 @@ showClosestPipe = true --export: show the closed Warp-Pipe
 showClosestPipeDist = true --export: show the closed Warp-Pipe 
 showAliothClosestPipe = true
 showAliothClosestPipeDist = true
+showVisualization = true --export: show the svg visualization
+visualizationX = 0 --export: x position of visualization
+visualizationY = 0 --export: y position of visualization
+visualizationScale = 1.0 --export: svg scale
+visualizationOpacity = 1.0 --export
 
 -- panel setup
 panelid = system.createWidgetPanel(panelName)
@@ -166,16 +474,24 @@ if showAliothClosestPipeDist == true then
     system.addDataToWidget(closestAliothPipeDistDataId, closestAliothPipeDistId)
 end
 
+--variable to calculate the current speed
+lastPosition = vec3(core.getConstructWorldPos())
+--variable to store current speed which is needed to choose which planet is origin and which is destination
+currentSpeed = vec3()
+
+--refreshPipeData(vec3(core.getConstructWorldPos()))
 refreshCoroutine = coroutine.create(refreshPipeData)
 coroutine.resume( refreshCoroutine, vec3(core.getConstructWorldPos()))
+
 system:onEvent("update", 
     function () 
         coroutine.resume( refreshCoroutine, vec3(core.getConstructWorldPos()))
     end
 )
 
-system:onEvent("stop",
-    function () 
+unit:onEvent("stop",
+    function ()
+        coroutine.resume( refreshCoroutine, nil)
         system.destroyWidgetPanel(panelid)
     end
 )
