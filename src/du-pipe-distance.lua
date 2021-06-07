@@ -267,7 +267,6 @@ function draw(planet1, planet2, location, distance)
                 <circle id="planet-safezone" cx="]]..distLeftSide..[[" cy="]]..lowerPlanetY..[[" r="]]..destSafeZoneScaled..[[" fill="green" fill-opacity=".25"/>
                 <circle id="planet-atmo"     cx="]]..distLeftSide..[[" cy="]]..lowerPlanetY..[[" r="]]..destAtmoScaled..[[" fill="green" fill-opacity=".5"/>
                 <circle id="planet-surface"  cx="]]..distLeftSide..[[" cy="]]..lowerPlanetY..[[" r="]]..destRadiusScaled..[[" fill="green"/>
-                <text id="planet-name" x="]]..distLeftSide..[[" y="]]..(lowerPlanetY-5)..[[">]]..planet2.name..[[</text>
         ]]
     elseif (pipePercentDone > 0.-pipePercentVisible and pipePercentDone < 0.+pipePercentVisible) then
         --system.print('near origin')
@@ -297,7 +296,6 @@ function draw(planet1, planet2, location, distance)
                 <circle id="planet-safezone" cx="]]..distLeftSide..[[" cy="]]..upperPlanetY..[[" r="]]..origSafeZoneScaled..[[" fill="green" fill-opacity=".25"/>
                 <circle id="planet-atmo"     cx="]]..distLeftSide..[[" cy="]]..upperPlanetY..[[" r="]]..origAtmoScaled..[[" fill="green" fill-opacity=".5"/>
                 <circle id="planet-surface"  cx="]]..distLeftSide..[[" cy="]]..upperPlanetY..[[" r="]]..origRadiusScaled..[[" fill="green"/>
-                <text id="planet-name" x="]]..distLeftSide..[[" y="]]..(upperPlanetY+20)..[[">]]..planet1.name..[[</text>
         ]]
     elseif (pipePercentDone <= 1.-pipePercentVisible and pipePercentDone >= pipePercentVisible) then
         --system.print('in lane')
@@ -336,6 +334,8 @@ function draw(planet1, planet2, location, distance)
                 L ]]..distLeftSide..[[,]]..lowerPlanetY..[[ 
                 Z"/>
         ]] .. planetStuff .. [[
+                <text id="planet1-name" x="]]..distLeftSide..[[" y="]]..(upperPlanetY+20)..[[">]]..planet1.name..[[</text>
+                <text id="planet2-name" x="]]..distLeftSide..[[" y="]]..(lowerPlanetY-5)..[[">]]..planet2.name..[[</text>
                 <text text-anchor="end" y="]]..(midY+10)..[[">
                     <tspan x="]]..(95 + distLeftSide)..[[" >]]..string.format("%.2f",pipePercentDone*100)..[[</tspan>  
                     <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(distance)..[[</tspan>  
