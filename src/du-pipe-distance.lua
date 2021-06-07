@@ -247,11 +247,12 @@ function draw(planet1, planet2, location, distance)
         if (pipePercentDone > 100.0 and math.abs(pipeFlownFromCenter) > planet2.radius) then
             rotateAngle = 90
             shipY = lowerPlanetY
-        elseif pipeFlownFromCenter < planet2.radius then
+        elseif pipePercentDone > 100.0 then
             local distCenter = (location-vec3(planet2.center)):len()
             local L = vec3(planet1.center) + (pipePercentDone * pipe)
             local pipeDistance =  (L - location):len()
-            rotateAngle = math.asin(pipeDistance / distCenter)
+            rotateAngle = math.deg(math.asin(pipeDistance / distCenter))
+            rotateDistance = distCenter
             shipY = lowerPlanetY
         end
         system.print(rotateAngle)
@@ -276,11 +277,12 @@ function draw(planet1, planet2, location, distance)
         if pipeFlownFromCenter < 0 and math.abs(pipeFlownFromCenter) > planet1.radius then
             rotateAngle = -90
             shipY = upperPlanetY
-        elseif pipeFlownFromCenter < planet1.radius then
+        elseif pipeFlownFromCenter < 0 then
             local distCenter = (location-vec3(planet1.center)):len()
             local L = vec3(planet1.center) + (pipePercentDone * pipe)
             local pipeDistance =  (L - location):len()
-            rotateAngle = -math.asin(pipeDistance / distCenter)
+            rotateAngle = -math.deg(math.asin(pipeDistance / distCenter))
+            rotateDistance = distCenter
             shipY = upperPlanetY
         end
         system.print(rotateAngle)
