@@ -377,11 +377,11 @@ function draw(planet1, planet2, location, distance)
         else 
 --            system.print('rotate')
             svg = svg .. [[
-                    <g transform="rotate(]]..rotateAngle..[[ ]]..distLeftSide..[[ ]]..shipY..[[)">
+                    <g transform="rotate(]]..(rotateAngle+90)..[[ ]]..distLeftSide..[[ ]]..shipY..[[)">
                         <circle cx="]]..distLeftSide..[[" cy="]]..shipY..[[" r="1" fill="black"/>
                         <line x1="]]..distLeftSide..[[" y1="]]..shipY..[[" x2="]]..(distLeftSide+distanceScaled)..[[" y2="]]..shipY..[[" stroke="black" stroke-width="1"/>
 
-                        <path id="ship" fill="black" d="M ]]..(shipWidth/2)..[[,]]..shipHeight..[[ L 0,0 L ]]..shipWidth..[[,0 Z"/ transform="translate(]]..(distLeftSide+ distanceScaled-(shipWidth/2))..[[,]]..(shipY-(shipHeight/2))..[[) ">
+                        <path id="ship" fill="black" d="M ]]..(shipWidth/2)..[[,]]..shipHeight..[[ L 0,0 L ]]..shipWidth..[[,0 Z"/ transform="translate(]]..(distLeftSide+ (rotateDistance/scale)-(shipWidth/2))..[[,]]..(shipY-(shipHeight/2))..[[) ">
                     </g>
                 </svg>
             ]]
