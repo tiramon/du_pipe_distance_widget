@@ -225,11 +225,11 @@ function draw(planet1, planet2, location, distance)
 
     local origRadiusScaled = planet1.radius / scale
     local origAtmoScaled = (planet1.radius + planet1.noAtmosphericDensityAltitude) / scale
-    local origSafeZoneScaled = (planet1.radius + planet1.safeAreaEdgeAltitude) / scale
+    local origSafeZoneScaled = (planet1.safeAreaEdgeAltitude) / scale
 
     local destRadiusScaled = planet2.radius / scale
     local destAtmoScaled = (planet2.radius + planet2.noAtmosphericDensityAltitude) / scale
-    local destSafeZoneScaled = (planet2.radius + planet2.safeAreaEdgeAltitude) / scale
+    local destSafeZoneScaled = (planet2.safeAreaEdgeAltitude) / scale
 
     local scannerRange = 2 * 200*1000 /scale
 
