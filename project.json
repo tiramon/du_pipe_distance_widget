@@ -12,6 +12,15 @@
                     "type": "core"
                 }
             }
+        },
+        "du-pipe-distance-oo": {
+            "name": "du-pipe-distance-oo",
+            "slots": {
+                "core": {
+                    "name": "core",
+                    "type": "core"
+                }
+            }
         }
     },
     "targets": {
