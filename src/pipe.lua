@@ -1,4 +1,4 @@
-minSpeed = 2000/3.6
+minSpeed = 40/3.6
 
 Pipe = {
     planet1 = nil,
@@ -36,6 +36,8 @@ function Pipe:new(planet1, planet2)
 end
 
 function Pipe:calcDistance(location)
+    self.pipePercentDone = (location-self.planet1Center):dot(self.pipe) / self.pipe:dot(self.pipe)
+
     local r = (location-self.planet1Center):dot(self.pipeNormalized) / self.pipeNormalized:dot(self.pipeNormalized)
     if r <= 0. then
        return (location-self.planet1Center):len()
@@ -45,8 +47,7 @@ function Pipe:calcDistance(location)
     local L = self.planet1Center + (r * self.pipeNormalized)
 
     self.pipeDistance =  (L - location):len()
-    self.pipePercentDone = (location-self.planet1Center):dot(self.pipe) / self.pipe:dot(self.pipe)
-
+    
     return self.pipeDistance
 end
 
@@ -130,11 +131,19 @@ function Pipe:getPlanet2()
     end
 end
 
-function Pipe:getPipe()
+function Pipe:getPipeNormalized()
     if self.reversed == true then
         return self.pipeNormalized * vec3(-1,-1,-1)
     else
         return self.pipeNormalized
+    end
+end
+
+function Pipe:getPipe()
+    if self.reversed == true then
+        return self.pipe * vec3(-1,-1,-1)
+    else
+        return self.pipe
     end
 end
 

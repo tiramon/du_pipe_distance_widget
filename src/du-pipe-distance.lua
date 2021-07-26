@@ -1,32 +1,8 @@
 require("atlas")
+require("utils")
+require("utils2")
 
 unit.hide()
---[[
-    calculates the distance between the location and the closest point of the line connecting the vec3 origCenter and destCenter
-]]--
-function calcDistance(origCenter, destCenter, location)
-    local pipe = (destCenter - origCenter):normalize()
-    local r = (location-origCenter):dot(pipe) / pipe:dot(pipe)
-    if r <= 0. then
-       return (location-origCenter):len()
-    elseif r >= (destCenter - origCenter):len() then
-       return (location-destCenter):len()
-    end
-    local L = origCenter + (r * pipe)
-    pipeDistance =  (L - location):len()
-
-    return pipeDistance
-end
-
---[[
-    calculates the distance between the location and the closest point of the line connecting the center of the planets stellarObjectOrigin and stellarObjectDestination
-]]--
-function calcDistanceStellar(stellarObjectOrigin, stellarObjectDestination, currenLocation)
-    local origCenter = vec3(stellarObjectOrigin.center)
-    local destCenter = vec3(stellarObjectDestination.center)
-
-    return calcDistance(origCenter, destCenter, currenLocation)
-end
 
 --[[
     refresh function for closest pipe calculation and visualization
@@ -106,9 +82,6 @@ refreshPipeData = function (currentLocation)
                 system.updateData(closestAliothPipeDistDataId, json.encode(closestAliothPipeDistData))
             end
 
-            currentSpeed = lastPosition - currentLocation
-            lastPosition = currentLocation
-
             if showVisualization == true then
                 draw(nearestPlanet1, nearestPlanet2, currentLocation, nearestPipeDistance)
             end
@@ -131,39 +104,6 @@ function calcProportion(origin, destination, percentDone, percentVisible, add)
 end
 
 --[[
-    formats the given distance in meter in km, su depending on size
-]]--
-function formatDistance(distanceInMeter)
-    if (distanceInMeter > 0.5 * 200*1000) then
-        return string.format("%.2f",distanceInMeter/(200*1000))
-    elseif (distanceInMeter > 500) then
-        return string.format("%.2f",distanceInMeter/1000)
-    else 
-        return string.format("%.2f", distanceInMeter)
-    end
-end
-
---[[
-    returns the right unit for the result of formatDistance
-]]--
-function unitDistance(distanceInMeter)
-    if (distanceInMeter > 0.5 * 200*1000) then
-        return 'su'
-    elseif (distanceInMeter > 500) then
-        return 'km'
-    else 
-        return 'm'
-    end
-end
-
---[[
-    calculates the signed angle between vecA and vecB on plane normal
-]]--
-function signedRotationAngle(normal, vecA, vecB)
-    return math.atan(vecA:cross(vecB):dot(normal), vecA:dot(vecB))
-end
-
---[[
     switches planet1 and planet2 depending on current speed and movement direction
 ]]--
 function switch(planet1, planet2, location)
@@ -171,13 +111,17 @@ function switch(planet1, planet2, location)
     local destCenter = vec3(planet2.center);
     local pipe = (destCenter - origCenter)
     local pipeDirection = pipe:normalize()
+    local movementVector = vec3(core.getWorldVelocity());
+    local speed = movementVector:len() *3.6
+    
 
-    system.print(currentSpeed:len())
+    if speed > 0.1 then
+        system.print('speed ' ..speed)
+    end
     local switch = false
-    if (currentSpeed:len() < 2000 and (location-origCenter) < (location-destCenter)) then
-        switch = true        
+    if (speed < 2000 and (location-origCenter) < (location-destCenter)) then
+        switch = true
     else
-        local movementVector = currentSpeed:normalize()
         local pipe2movement = signedRotationAngle(vec3(1,1,1), movementVector, pipeDirection)
         system.print('moving '..tostring(pipeDirection) .. ' '..tostring(movementVector).. ' '..pipe2movement)
 
@@ -225,11 +169,11 @@ function draw(planet1, planet2, location, distance)
 
     local origRadiusScaled = planet1.radius / scale
     local origAtmoScaled = (planet1.radius + planet1.noAtmosphericDensityAltitude) / scale
-    local origSafeZoneScaled = (planet1.safeAreaEdgeAltitude) / scale
+    local origSafeZoneScaled = planet1.safeAreaEdgeAltitude / scale
 
     local destRadiusScaled = planet2.radius / scale
     local destAtmoScaled = (planet2.radius + planet2.noAtmosphericDensityAltitude) / scale
-    local destSafeZoneScaled = (planet2.safeAreaEdgeAltitude) / scale
+    local destSafeZoneScaled = planet2.safeAreaEdgeAltitude / scale
 
     local scannerRange = 2 * 200*1000 /scale
 
@@ -242,20 +186,19 @@ function draw(planet1, planet2, location, distance)
     if (pipePercentDone > 1.0-pipePercentVisible and pipePercentDone < 1.0+pipePercentVisible) then
         --system.print('near target')
         pipePercentVisibleDown = pipePercentDone-1.0
-        lowerPlanetY = (midY-(pipePercentVisibleDown*pipeLengthScaled))
-        local pipeFlownFromCenter = pipePercentVisibleDown*pipe:len()
+        lowerPlanetY = (midY - (pipePercentVisibleDown * pipeLengthScaled))
+        local pipeFlownFromCenter = pipePercentVisibleDown * pipe:len()
         if (pipePercentDone > 100.0 and math.abs(pipeFlownFromCenter) > planet2.radius) then
             rotateAngle = 90
             shipY = lowerPlanetY
         elseif pipePercentDone > 100.0 then
-            local distCenter = (location-vec3(planet2.center)):len()
-            local L = vec3(planet1.center) + (pipePercentDone * pipe)
+            local distCenter = (location-destCenter):len()
+            local L = origCenter + (pipePercentDone * pipe)
             local pipeDistance =  (L - location):len()
             rotateAngle = math.deg(math.asin(pipeDistance / distCenter))
             rotateDistance = distCenter
             shipY = lowerPlanetY
         end
-        system.print(rotateAngle)
 
         planetStuff = [[
                 <path id="scanner" fill="none" stroke-dasharray="5" stroke="black" d="
@@ -277,14 +220,14 @@ function draw(planet1, planet2, location, distance)
             rotateAngle = -90
             shipY = upperPlanetY
         elseif pipeFlownFromCenter < 0 then
-            local distCenter = (location-vec3(planet1.center)):len()
-            local L = vec3(planet1.center) + (pipePercentDone * pipe)
+            local distCenter = (location- origCenter):len()
+            local L = origCenter + (pipePercentDone * pipe)
             local pipeDistance =  (L - location):len()
             rotateAngle = -math.deg(math.asin(pipeDistance / distCenter))
             rotateDistance = distCenter
             shipY = upperPlanetY
         end
-        system.print(rotateAngle)
+
         planetStuff = [[
                 <path id="scanner" fill="none" stroke-dasharray="5" stroke="black" d="
                     M ]]..(distLeftSide-(calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRange))..[[,]]..upperPlanetY..[[ 
@@ -397,6 +340,8 @@ function draw(planet1, planet2, location, distance)
     
 end
 
+local debug = false
+
 local panelName = "Pipe info" --export: panel name
 showClosestPlanet = true --export: show closest planet
 showClosestPipe = true --export: show the closed Warp-Pipe 
@@ -476,18 +421,20 @@ if showAliothClosestPipeDist == true then
     system.addDataToWidget(closestAliothPipeDistDataId, closestAliothPipeDistId)
 end
 
---variable to calculate the current speed
-lastPosition = vec3(core.getConstructWorldPos())
---variable to store current speed which is needed to choose which planet is origin and which is destination
-currentSpeed = vec3()
-
---refreshPipeData(vec3(core.getConstructWorldPos()))
+--refreshPipeData(vec3(core.getConstructWorldPos())) end
 refreshCoroutine = coroutine.create(refreshPipeData)
-coroutine.resume( refreshCoroutine, vec3(core.getConstructWorldPos()))
-
+state, error = coroutine.resume( refreshCoroutine, vec3(core.getConstructWorldPos()))
+if (state == false) then
+    system.print(error);
+    unit.exit();
+end
 system:onEvent("update", 
     function () 
-        coroutine.resume( refreshCoroutine, vec3(core.getConstructWorldPos()))
+        state, error = coroutine.resume( refreshCoroutine, vec3(core.getConstructWorldPos()))
+        if (state == false) then
+            system.print(error);
+            unit.exit();
+        end
     end
 )
 

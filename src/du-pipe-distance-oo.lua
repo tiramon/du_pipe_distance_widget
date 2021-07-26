@@ -119,11 +119,18 @@ function draw(pipe, location, distance)
     local lowerPlanetY = upperPlanetY + distScreenBorders
     local midY = (upperPlanetY+lowerPlanetY)/2
 
-    local visibleMeter =  math.max(10*200*1000, distance)
-    local scale = 1 * (2*visibleMeter) / distScreenBorders
-
     local planet1, planet2 = pipe:getPlanets()
     local origCenter, destCenter = pipe:getPlanetCenters()
+    local scannerRange = 2 * 200*1000
+
+    local svgWidth = (distLeftSide + 200)
+    local svgHeight = (distScreenBorders + 50)
+
+    local visibleMeter =  math.max(distance , math.max(planet1.radius, planet2.radius) * 1.1)
+    --math.max(math.max(planet1.safeAreaEdgeAltitude, planet2.safeAreaEdgeAltitude)+ scannerRange, distance)
+    local scale = 1 * visibleMeter / (svgWidth-distLeftSide-50)
+
+   
     --local pipe = pipe:getPipe()
 
     local pipePercentDone = pipe:getPipePercentDone()
@@ -141,12 +148,11 @@ function draw(pipe, location, distance)
     local destRadiusScaled = planet2.radius / scale
     local destAtmoScaled = (planet2.radius + planet2.noAtmosphericDensityAltitude) / scale
     local destSafeZoneScaled = planet2.safeAreaEdgeAltitude / scale
-
-    local scannerRange = 2 * 200*1000 /scale
-
+    
+    local scannerRangeScaled = scannerRange / scale
     local speedVector = vec3(core.getWorldVelocity())
     local speedSq = speedVector:len2()
-    local velocityAngle
+    local velocityAngle = 0
     if speedSq > 0.1  then
         velocityAngle = pipe:calcAngleToVelocity(speedVector)
     end
@@ -154,32 +160,35 @@ function draw(pipe, location, distance)
     system.print('dist '..distance .. ' scale ' .. scale .. ' angle '.. tostring(velocityAngle) .. ' ' .. speedSq)
     local distanceScaled = distance /scale
     
+    --
+    
     local planetStuff = ''
     local rotateAngle  = 0
+    local rotateDistance = 0
     local shipY = midY
+    local upperPipeAdd = 0
+    local lowerPipeAdd = 0
     if (pipePercentDone > 1.0-pipePercentVisible and pipePercentDone < 1.0+pipePercentVisible) then
         --system.print('near target')
+        upperPipeAdd=25
         pipePercentVisibleDown = pipePercentDone-1.0
         lowerPlanetY = (midY - (pipePercentVisibleDown * pipeLengthScaled))
-        local pipeFlownFromCenter = pipePercentVisibleDown * pipe.pipeLength
-        if (pipePercentDone > 100.0 and math.abs(pipeFlownFromCenter) > planet2.radius) then
-            rotateAngle = 90
-            shipY = lowerPlanetY
-        elseif pipePercentDone > 100.0 then
+        if pipePercentDone > 1.0 then
             local distCenter = (location-destCenter):len()
             local L = origCenter + (pipePercentDone * pipe:getPipe())
             local pipeDistance =  (L - location):len()
             rotateAngle = math.deg(math.asin(pipeDistance / distCenter))
             rotateDistance = distCenter
+            velocityAngle = -velocityAngle
             shipY = lowerPlanetY
         end
 
         planetStuff = [[
                 <path id="scanner" fill="none" stroke-dasharray="5" stroke="black" d="
-                    M ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRange))..[[,]]..upperPlanetY..[[ 
-                    L ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true ) + scannerRange))..[[,]]..lowerPlanetY..[[ 
-                    A ]]..destSafeZoneScaled..[[ ]]..destSafeZoneScaled..[[ 0 0 1 ]]..(distLeftSide-(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true ) + scannerRange))..[[ ]]..lowerPlanetY.. [[
-                    M ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRange))..[[,]]..upperPlanetY..[[ 
+                    M ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRangeScaled))..[[,]]..(upperPlanetY+25)..[[ 
+                    L ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true ) + scannerRangeScaled))..[[,]]..lowerPlanetY..[[ 
+                    A ]]..destSafeZoneScaled..[[ ]]..destSafeZoneScaled..[[ 0 0 1 ]]..(distLeftSide-(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true ) + scannerRangeScaled))..[[ ]]..lowerPlanetY.. [[
+                    M ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRangeScaled))..[[,]]..(upperPlanetY+25)..[[ 
                     Z"/>
                 <circle id="planet-safezone" cx="]]..distLeftSide..[[" cy="]]..lowerPlanetY..[[" r="]]..destSafeZoneScaled..[[" fill="green" fill-opacity=".25"/>
                 <circle id="planet-atmo"     cx="]]..distLeftSide..[[" cy="]]..lowerPlanetY..[[" r="]]..destAtmoScaled..[[" fill="green" fill-opacity=".5"/>
@@ -187,13 +196,10 @@ function draw(pipe, location, distance)
         ]]
     elseif (pipePercentDone > 0.-pipePercentVisible and pipePercentDone < 0.+pipePercentVisible) then
         --system.print('near origin')
+        lowerPipeAdd=25
         pipePercentVisibleUp = pipePercentDone
         upperPlanetY = (midY-pipePercentVisibleUp*pipeLengthScaled)
-        local pipeFlownFromCenter = pipePercentVisibleUp*pipe.pipeLength
-        if pipeFlownFromCenter < 0 and math.abs(pipeFlownFromCenter) > planet1.radius then
-            rotateAngle = -90
-            shipY = upperPlanetY
-        elseif pipePercentDone < 0 then
+        if pipePercentDone < 0.0 then
             local distCenter = (location-origCenter):len()
             local L = origCenter + (pipePercentDone * pipe:getPipe())
             local pipeDistance =  (L - location):len()
@@ -204,10 +210,10 @@ function draw(pipe, location, distance)
         
         planetStuff = [[
                 <path id="scanner" fill="none" stroke-dasharray="5" stroke="black" d="
-                    M ]]..(distLeftSide-(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRange))..[[,]]..upperPlanetY..[[ 
-                    A ]]..origSafeZoneScaled..[[ ]]..origSafeZoneScaled..[[ 0 0 1 ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true) + scannerRange))..[[ ]]..upperPlanetY.. [[
-                    L ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true) + scannerRange))..[[,]]..lowerPlanetY..[[ 
-                    M ]]..(distLeftSide-(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRange))..[[,]]..upperPlanetY..[[ 
+                    M ]]..(distLeftSide-(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRangeScaled))..[[,]]..upperPlanetY..[[ 
+                    A ]]..origSafeZoneScaled..[[ ]]..origSafeZoneScaled..[[ 0 0 1 ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true) + scannerRangeScaled))..[[ ]]..upperPlanetY.. [[
+                    L ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true) + scannerRangeScaled))..[[,]]..(lowerPlanetY+25)..[[ 
+                    M ]]..(distLeftSide-(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRangeScaled))..[[,]]..upperPlanetY..[[ 
                     Z"/>
 
                 <circle id="planet-safezone" cx="]]..distLeftSide..[[" cy="]]..upperPlanetY..[[" r="]]..origSafeZoneScaled..[[" fill="green" fill-opacity=".25"/>
@@ -216,74 +222,79 @@ function draw(pipe, location, distance)
         ]]
     elseif (pipePercentDone <= 1.-pipePercentVisible and pipePercentDone >= pipePercentVisible) then
         --system.print('in lane')
+        lowerPipeAdd=25
+        upperPipeAdd=25
         planetStuff = [[
                 <path id="scanner" fill="none" stroke-dasharray="5" stroke="black" d="
-                    M ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRange))..[[,]]..upperPlanetY..[[
-                    L ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true) + scannerRange))..[[,]]..lowerPlanetY..[[
-                    M ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRange))..[[,]]..upperPlanetY..[[
+                    M ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRangeScaled))..[[,]]..(upperPlanetY-25)..[[
+                    L ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true) + scannerRangeScaled))..[[,]]..(lowerPlanetY+25)..[[
+                    M ]]..(distLeftSide+(pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false) + scannerRangeScaled))..[[,]]..(upperPlanetY-25)..[[
                     Z"/>
         ]]
     end
     
+    system.print(tostring(rotateAngle).. ' ' .. tostring(rotateDistance))
+    --]]..(distLeftSide + 200)..[[
     local  svg = [[
-        <svg xmlns="http://www.w3.org/2000/svg" width="]]..(distLeftSide + 200)..[[" height="]]..(distScreenBorders + 50)..[[">
+        <svg xmlns="http://www.w3.org/2000/svg" width="]]..svgWidth..[[" height="]]..svgHeight..[[">
             <path id="pipe-safezone" fill="grey" fill-opacity=".25" d="
-                M ]]..(distLeftSide-pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..upperPlanetY..[[ 
-                L ]]..(distLeftSide-pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..lowerPlanetY..[[ 
-                L ]]..(distLeftSide+pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..lowerPlanetY ..[[ 
-                L ]]..(distLeftSide+pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..upperPlanetY..[[ 
+                M ]]..(distLeftSide-pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..(upperPlanetY-upperPipeAdd)..[[ 
+                L ]]..(distLeftSide-pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..(lowerPlanetY+lowerPipeAdd)..[[ 
+                L ]]..(distLeftSide+pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..(lowerPlanetY+lowerPipeAdd)..[[ 
+                L ]]..(distLeftSide+pipe:calcProportion(origSafeZoneScaled, destSafeZoneScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..(upperPlanetY-upperPipeAdd)..[[ 
                 Z"/>
             <path id="pipe-atmo" fill="grey" fill-opacity=".5"  d="
-                M ]]..(distLeftSide-pipe:calcProportion(origAtmoScaled, destAtmoScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..upperPlanetY..[[ 
-                L ]]..(distLeftSide-pipe:calcProportion(origAtmoScaled, destAtmoScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..lowerPlanetY..[[ 
-                L ]]..(distLeftSide+pipe:calcProportion(origAtmoScaled, destAtmoScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..lowerPlanetY..[[ 
-                L ]]..(distLeftSide+pipe:calcProportion(origAtmoScaled, destAtmoScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..upperPlanetY..[[ 
+                M ]]..(distLeftSide-pipe:calcProportion(origAtmoScaled, destAtmoScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..(upperPlanetY-upperPipeAdd)..[[ 
+                L ]]..(distLeftSide-pipe:calcProportion(origAtmoScaled, destAtmoScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..(lowerPlanetY+lowerPipeAdd)..[[ 
+                L ]]..(distLeftSide+pipe:calcProportion(origAtmoScaled, destAtmoScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..(lowerPlanetY+lowerPipeAdd)..[[ 
+                L ]]..(distLeftSide+pipe:calcProportion(origAtmoScaled, destAtmoScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..(upperPlanetY-upperPipeAdd)..[[ 
                 Z"/>
             <path id="pipe-surface" fill="grey" fill-opacity=".75" d="
-                M ]]..(distLeftSide-pipe:calcProportion(origRadiusScaled, destRadiusScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..upperPlanetY..[[ 
-                L ]]..(distLeftSide-pipe:calcProportion(origRadiusScaled, destRadiusScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..lowerPlanetY..[[ 
-                L ]]..(distLeftSide+pipe:calcProportion(origRadiusScaled, destRadiusScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..lowerPlanetY..[[ 
-                L ]]..(distLeftSide+pipe:calcProportion(origRadiusScaled, destRadiusScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..upperPlanetY..[[ 
+                M ]]..(distLeftSide-pipe:calcProportion(origRadiusScaled, destRadiusScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..(upperPlanetY-upperPipeAdd)..[[ 
+                L ]]..(distLeftSide-pipe:calcProportion(origRadiusScaled, destRadiusScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..(lowerPlanetY+lowerPipeAdd)..[[ 
+                L ]]..(distLeftSide+pipe:calcProportion(origRadiusScaled, destRadiusScaled, pipePercentDone, pipePercentVisibleDown, true ))..[[,]]..(lowerPlanetY+lowerPipeAdd)..[[ 
+                L ]]..(distLeftSide+pipe:calcProportion(origRadiusScaled, destRadiusScaled, pipePercentDone, pipePercentVisibleUp, false))..[[,]]..(upperPlanetY-upperPipeAdd)..[[ 
                 Z"/>
 
-            <path id="pipe-center" stroke="black" stroke-width="1" d="
-                M ]]..distLeftSide..[[,]]..upperPlanetY..[[ 
-                L ]]..distLeftSide..[[,]]..lowerPlanetY..[[ 
-                Z"/>
         ]] .. planetStuff .. [[
+            <path id="pipe-center" stroke="black" stroke-width="1" d="
+                M ]]..distLeftSide..[[,]]..upperPlanetY-upperPipeAdd..[[ 
+                L ]]..distLeftSide..[[,]]..lowerPlanetY+lowerPipeAdd..[[ 
+                Z"/>
             <text id="planet1-name" x="]]..distLeftSide..[[" y="]]..(upperPlanetY+20)..[[">]]..planet1.name..[[</text>
             <text id="planet2-name" x="]]..distLeftSide..[[" y="]]..(lowerPlanetY-5)..[[">]]..planet2.name..[[</text>
-            <text text-anchor="end" y="]]..(midY+10)..[[">
-                <tspan x="]]..(95 + distLeftSide)..[[" >]]..string.format("%.2f",pipePercentDone*100)..[[</tspan>  
-                <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(distance)..[[</tspan>  
-                <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-pipe:calcProportion(planet1.radius, planet2.radius, pipePercentDone)))..[[</tspan>
-                <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-pipe:calcProportion(planet1.radius+planet1.noAtmosphericDensityAltitude, planet2.radius+planet2.noAtmosphericDensityAltitude, pipePercentDone)))..[[</tspan>
-                <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-pipe:calcProportion(planet1.radius+planet1.safeAreaEdgeAltitude, planet2.radius+planet2.safeAreaEdgeAltitude, pipePercentDone)))..[[</tspan>                    
-                <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-pipe:calcProportion(planet1.radius+planet1.safeAreaEdgeAltitude, planet2.radius+planet2.safeAreaEdgeAltitude, pipePercentDone)-scannerRange))..[[</tspan>
-                <tspan x="]]..(95 + distLeftSide)..[[" dy="20" fill="none">0</tspan>
+            <text text-anchor="end" y="]]..(midY+15)..[[">
+                <tspan x="]]..(55 + distLeftSide)..[[" >]]..string.format("%.2f",pipePercentDone*100)..[[</tspan>  
+                <tspan x="]]..(55 + distLeftSide)..[[" dy="20">]]..formatDistance(distance)..[[</tspan>  
+                <tspan x="]]..(55 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-pipe:calcProportion(planet1.radius, planet2.radius, pipePercentDone)))..[[</tspan>
+                <tspan x="]]..(55 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-pipe:calcProportion(planet1.radius+planet1.noAtmosphericDensityAltitude, planet2.radius+planet2.noAtmosphericDensityAltitude, pipePercentDone)))..[[</tspan>
+                <tspan x="]]..(55 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-pipe:calcProportion(planet1.safeAreaEdgeAltitude, planet2.safeAreaEdgeAltitude, pipePercentDone)))..[[</tspan>                    
+                <tspan x="]]..(55 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-pipe:calcProportion(planet1.safeAreaEdgeAltitude + scannerRange, planet2.safeAreaEdgeAltitude + scannerRange, pipePercentDone)-scannerRangeScaled))..[[</tspan>
+                <tspan x="]]..(55 + distLeftSide)..[[" dy="20" fill="none">0</tspan>
             </text>
 
             <text y="]]..(midY+10)..[[">
-                <tspan x="]]..(100 + distLeftSide)..[[">%</tspan>
-                <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(distance)..[[</tspan>
-                <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-pipe:calcProportion(planet1.radius, planet2.radius, pipePercentDone)))..[[</tspan>
-                <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-pipe:calcProportion(planet1.radius+planet1.noAtmosphericDensityAltitude, planet2.radius+planet2.noAtmosphericDensityAltitude, pipePercentDone)))..[[</tspan>
-                <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-pipe:calcProportion(planet1.radius+planet1.safeAreaEdgeAltitude, planet2.radius+planet2.safeAreaEdgeAltitude, pipePercentDone)))..[[</tspan>
-                <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-pipe:calcProportion(planet1.radius+planet1.safeAreaEdgeAltitude, planet2.radius+planet2.safeAreaEdgeAltitude, pipePercentDone)-scannerRange))..[[</tspan>
+                <tspan x="]]..(60 + distLeftSide)..[[">%</tspan>
+                <tspan x="]]..(60 + distLeftSide)..[[" dy="20">]]..unitDistance(distance)..[[</tspan>
+                <tspan x="]]..(60 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-pipe:calcProportion(planet1.radius, planet2.radius, pipePercentDone)))..[[</tspan>
+                <tspan x="]]..(60 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-pipe:calcProportion(planet1.radius+planet1.noAtmosphericDensityAltitude, planet2.radius+planet2.noAtmosphericDensityAltitude, pipePercentDone)))..[[</tspan>
+                <tspan x="]]..(60 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-pipe:calcProportion(planet1.safeAreaEdgeAltitude, planet2.safeAreaEdgeAltitude, pipePercentDone)))..[[</tspan>
+                <tspan x="]]..(60 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-pipe:calcProportion(planet1.safeAreaEdgeAltitude + scannerRange, planet2.safeAreaEdgeAltitude + scannerRange, pipePercentDone)-scannerRangeScaled))..[[</tspan>
             </text>
             <text y="]]..(midY+10)..[[">
-                <tspan x="]]..(125 + distLeftSide)..[["></tspan>
-                <tspan x="]]..(125 + distLeftSide)..[[" dy="20">center</tspan>
-                <tspan x="]]..(125 + distLeftSide)..[[" dy="20">surface</tspan>
-                <tspan x="]]..(125 + distLeftSide)..[[" dy="20">atmo</tspan>
-                <tspan x="]]..(125 + distLeftSide)..[[" dy="20">safe</tspan>
-                <tspan x="]]..(125 + distLeftSide)..[[" dy="20">scanner</tspan>
+                <tspan x="]]..(85 + distLeftSide)..[["></tspan>
+                <tspan x="]]..(85 + distLeftSide)..[[" dy="20">center</tspan>
+                <tspan x="]]..(85 + distLeftSide)..[[" dy="20">surface</tspan>
+                <tspan x="]]..(85 + distLeftSide)..[[" dy="20">atmo</tspan>
+                <tspan x="]]..(85 + distLeftSide)..[[" dy="20">safe</tspan>
+                <tspan x="]]..(85 + distLeftSide)..[[" dy="20">scanner</tspan>
             </text>
         ]]    
-        if rotateAngle ~= nil and rotateAngle == 0 then
+        --if rotateAngle == 0 then
             --system.print('no rotate')
+            midY = shipY
             svg = svg .. [[
-                    <g>
+                    <g transform="rotate(]]..(rotateAngle)..[[ ]]..distLeftSide..[[ ]]..shipY..[[)">
                         <circle cx="]]..distLeftSide..[[" cy="]]..midY..[[" r="1" fill="black"/>
                         <line x1="]]..distLeftSide..[[" y1="]]..midY..[[" x2="]]..(distLeftSide+distanceScaled)..[[" y2="]]..midY..[[" stroke="black" stroke-width="1"/>
 
@@ -291,31 +302,31 @@ function draw(pipe, location, distance)
                     ]]
                    
             if speedSq > 0.1 then
-                svg = svg..[[    <line id="currentcourse" x1="]]..(distLeftSide + distanceScaled)..[[" y1="]]..(midY+40)..[[" x2="]]..(distLeftSide + distanceScaled)..[[" y2="]]..(midY)..[[" stroke-width="1" stroke="red" transform="rotate(]]..velocityAngle..[[ ]]..(distLeftSide + distanceScaled)..[[ ]]..(midY)..[[)"/>]]
+                svg = svg..[[    <line id="currentcourse" x1="]]..(distLeftSide + distanceScaled)..[[" y1="]]..(midY+40)..[[" x2="]]..(distLeftSide + distanceScaled)..[[" y2="]]..(midY)..[[" stroke-width="1" stroke="red" transform="rotate(]]..(velocityAngle - rotateAngle)..[[ ]]..(distLeftSide + distanceScaled)..[[ ]]..(midY)..[[)"/>]]
             end
             svg = svg .. '</g>'
-        else 
+        --else 
             --system.print('rotate')
-            svg = svg .. [[
-                    <g transform="rotate(]]..(rotateAngle+90)..[[ ]]..distLeftSide..[[ ]]..shipY..[[)">
-                        <circle cx="]]..distLeftSide..[[" cy="]]..shipY..[[" r="1" fill="black"/>
-                        <line x1="]]..distLeftSide..[[" y1="]]..shipY..[[" x2="]]..(distLeftSide+distanceScaled)..[[" y2="]]..shipY..[[" stroke="black" stroke-width="1"/>
+--            svg = svg .. [[
+--                    <g transform="rotate(]]..(rotateAngle)..[[ ]]..distLeftSide..[[ ]]..shipY..[[)">
+--                        <circle cx="]]..distLeftSide..[[" cy="]]..shipY..[[" r="1" fill="black"/>
+--                        <line x1="]]..distLeftSide..[[" y1="]]..shipY..[[" x2="]]..(distLeftSide+distanceScaled)..[[" y2="]]..shipY..[[" stroke="black" stroke-width="1"/>
 
-                        <path id="ship" fill="black" d="M ]]..(shipWidth/2)..[[,]]..shipHeight..[[ L 0,0 L ]]..shipWidth..[[,0 Z"/ transform="translate(]]..(distLeftSide + (rotateDistance/scale) - (shipWidth/2))..[[,]]..(shipY-(shipHeight/2))..[[) "/>
-                    ]]
-            if speedSq > 0.1 then
-                svg = svg..[[<line id="currentcourse" x1="]]..(distLeftSide + (rotateDistance/scale))..[[" y1="]]..(shipY+40)..[[" x2="]]..(distLeftSide + (rotateDistance/scale))..[[" y2="]]..(shipY)..[[ stroke-width="1" stroke="red" transform="rotate(]]..(velocityAngle - (rotateAngle+90))..[[  ]]..(distLeftSide + (rotateDistance/scale))..[[ ]]..(shipY)..[[)"/>]]
-            end
-            svg = svg .. '</g>'
-        end
+--                        <path id="ship" fill="black" d="M ]]..(shipWidth/2)..[[,]]..shipHeight..[[ L 0,0 L ]]..shipWidth..[[,0 Z"/ transform="translate(]]..(distLeftSide + distanceScaled - (shipWidth/2))..[[,]]..(shipY-(shipHeight/2))..[[) "/>
+--                    ]]
+--            if speedSq > 0.1 then
+--                svg = svg..[[<line id="currentcourse" x1="]]..(distLeftSide + distanceScaled)..[[" y1="]]..(shipY+40)..[[" x2="]]..(distLeftSide + distanceScaled)..[[" y2="]]..(shipY)..[[ stroke-width="1" stroke="red" transform="rotate(]]..(velocityAngle - rotateAngle)..[[  ]]..(distLeftSide + distanceScaled)..[[ ]]..(shipY)..[[)"/>]]
+--            end
+--            svg = svg .. '</g>'
+--        end
         svg = svg ..  [[
                 </svg>
         ]] 
     system.showScreen(1)
     system.setScreen([[
         <div style="position: absolute; left: ]]..visualizationX..[[px; top:]]..visualizationY..[[px;">
-            <svg width="]]..((distLeftSide + 200)*visualizationScale)..[[" height="]]..((distScreenBorders + 50)*visualizationScale)..[[" viewBox="0 0 ]]..(distLeftSide + 200)..[[ ]]..(distScreenBorders + 50)..[[">
-                <rect width="100%" height="100%" rx="10" ry="10" fill="white" fill-opacity="]]..visualizationOpacity..[["/>
+            <svg width="]]..(svgWidth*visualizationScale)..[[" height="]]..(svgHeight*visualizationScale)..[[" viewBox="0 0 ]]..svgWidth..[[ ]]..svgHeight..[[">
+                <rect width="100%" height="100%" fill="white" fill-opacity="]]..visualizationOpacity..[["/>
                 ]]..svg..[[
             </svg>
         </div>]])
