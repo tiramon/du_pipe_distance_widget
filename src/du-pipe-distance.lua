@@ -1,4 +1,5 @@
-require("atlas")
+_stellarObjects = require("atlas")[0]
+localization = 1 --export: 1 - english, 2 - french, 3 - german
 
 unit.hide()
 
@@ -39,7 +40,7 @@ refreshPipeData = function (currentLocation)
         end
 
         if showClosestPlanet == true then
-            planetInfoData.value = _stellarObjects[nearestPlanet].name
+            planetInfoData.value = _stellarObjects[nearestPlanet].name[1]
             system.updateData(planetInfoDataId, json.encode(planetInfoData))
         end
 
@@ -59,7 +60,7 @@ refreshPipeData = function (currentLocation)
                             sortestPipeKey2Id = obj2;
                         end
 
-                        if _stellarObjects[obj].name == "Alioth" and (nearestAliothPipeDistance == nil or pipeDistance < nearestAliothPipeDistance) then
+                        if _stellarObjects[obj].name[1] == "Alioth" and (nearestAliothPipeDistance == nil or pipeDistance < nearestAliothPipeDistance) then
                             nearestAliothPipeDistance = pipeDistance;
                             sortestAliothPipeKeyId = obj;
                             sortestAliothPipeKey2Id = obj2;
@@ -69,7 +70,7 @@ refreshPipeData = function (currentLocation)
             end
 
             if showClosestPipe == true then
-                closestPipeData.value = _stellarObjects[sortestPipeKeyId].name .. " - " .. _stellarObjects[sortestPipeKey2Id].name
+                closestPipeData.value = _stellarObjects[sortestPipeKeyId].name[localization] .. " - " .. _stellarObjects[sortestPipeKey2Id].name[localization]
                 system.updateData(closestPipeDataId, json.encode(closestPipeData))
             end
 
@@ -79,7 +80,7 @@ refreshPipeData = function (currentLocation)
             end
 
             if showAliothClosestPipe == true then
-                closestAliothPipeData.value = _stellarObjects[sortestAliothPipeKeyId].name .. " - " .. _stellarObjects[sortestAliothPipeKey2Id].name
+                closestAliothPipeData.value = _stellarObjects[sortestAliothPipeKeyId].name[localization] .. " - " .. _stellarObjects[sortestAliothPipeKey2Id].name[localization]
                 system.updateData(closestAliothPipeDataId, json.encode(closestAliothPipeData))
             end
 
