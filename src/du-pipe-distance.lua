@@ -30,12 +30,14 @@ refreshPipeData = function (currentLocation)
         local nearestPlanet = nil;
 
         for obj in pairs(_stellarObjects) do
-            local planetCenter = vec3(_stellarObjects[obj].center)
-            local distance = vec3(currentLocation - planetCenter):len() 
+            if (_stellarObjects[obj].type[1] == 'Planet') then
+                local planetCenter = vec3(_stellarObjects[obj].center)
+                local distance = vec3(currentLocation - planetCenter):len() 
 
-            if (smallestDistance == nil or distance < smallestDistance) then
-                smallestDistance = distance;
-                nearestPlanet = obj;
+                if (smallestDistance == nil or distance < smallestDistance) then
+                    smallestDistance = distance;
+                    nearestPlanet = obj;
+                end
             end
         end
 
@@ -50,20 +52,22 @@ refreshPipeData = function (currentLocation)
             nearestPipeDistance = nil
             nearestAliothPipeDistance= nil
             for obj in pairs(_stellarObjects) do
-                for obj2 in pairs(_stellarObjects) do
-                    if (obj2 > obj) then
-                        pipeDistance = calcDistanceStellar(_stellarObjects[obj], _stellarObjects[obj2], currentLocation)
+                if (_stellarObjects[obj].type[1] == 'Planet') then
+                    for obj2 in pairs(_stellarObjects) do
+                        if (obj2 > obj and _stellarObjects[obj2].type[1] == 'Planet') then
+                            pipeDistance = calcDistanceStellar(_stellarObjects[obj], _stellarObjects[obj2], currentLocation)
 
-                        if nearestPipeDistance == nil or pipeDistance < nearestPipeDistance then
-                            nearestPipeDistance = pipeDistance;
-                            sortestPipeKeyId = obj;
-                            sortestPipeKey2Id = obj2;
-                        end
+                            if nearestPipeDistance == nil or pipeDistance < nearestPipeDistance then
+                                nearestPipeDistance = pipeDistance;
+                                sortestPipeKeyId = obj;
+                                sortestPipeKey2Id = obj2;
+                            end
 
-                        if _stellarObjects[obj].name[1] == "Alioth" and (nearestAliothPipeDistance == nil or pipeDistance < nearestAliothPipeDistance) then
-                            nearestAliothPipeDistance = pipeDistance;
-                            sortestAliothPipeKeyId = obj;
-                            sortestAliothPipeKey2Id = obj2;
+                            if _stellarObjects[obj].name[1] == "Alioth" and (nearestAliothPipeDistance == nil or pipeDistance < nearestAliothPipeDistance) then
+                                nearestAliothPipeDistance = pipeDistance;
+                                sortestAliothPipeKeyId = obj;
+                                sortestAliothPipeKey2Id = obj2;
+                            end
                         end
                     end
                 end
