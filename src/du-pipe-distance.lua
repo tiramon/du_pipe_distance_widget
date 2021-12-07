@@ -1,4 +1,5 @@
-require("atlas")
+_stellarObjects = require("atlas")[0]
+localization = 1 --export: 1 - english, 2 - french, 3 - german
 require("utils")
 require("utils2")
 
@@ -25,7 +26,7 @@ refreshPipeData = function (currentLocation)
         end
 
         if showClosestPlanet == true then
-            planetInfoData.value = _stellarObjects[nearestPlanet].name
+            planetInfoData.value = _stellarObjects[nearestPlanet].name[localization]
             system.updateData(planetInfoDataId, json.encode(planetInfoData))
         end
 
@@ -50,7 +51,7 @@ refreshPipeData = function (currentLocation)
                             nearestPlanet2 = currentPlanet2
                         end
 
-                        if currentPlanet1.name == "Alioth" and (nearestAliothPipeDistance == nil or pipeDistance < nearestAliothPipeDistance) then
+                        if currentPlanet1.name[1] == "Alioth" and (nearestAliothPipeDistance == nil or pipeDistance < nearestAliothPipeDistance) then
                             nearestAliothPipeDistance = pipeDistance;
                             aliothPlanet1 = currentPlanet1
                             aliothPlanet2 = currentPlanet2
@@ -63,7 +64,7 @@ refreshPipeData = function (currentLocation)
             aliothPlanet1, aliothPlanet2 = switch(aliothPlanet1, aliothPlanet2, currentLocation)
 
             if showClosestPipe == true then
-                closestPipeData.value = nearestPlanet1.name .. " - " .. nearestPlanet2.name
+                closestPipeData.value = nearestPlanet1.name[localization] .. " - " .. nearestPlanet2.name[localization]
                 system.updateData(closestPipeDataId, json.encode(closestPipeData))
             end
 
@@ -73,7 +74,7 @@ refreshPipeData = function (currentLocation)
             end
 
             if showAliothClosestPipe == true then
-                closestAliothPipeData.value = aliothPlanet1.name .. " - " .. aliothPlanet2.name
+                closestAliothPipeData.value = aliothPlanet1.name[localization] .. " - " .. aliothPlanet2.name[localization]
                 system.updateData(closestAliothPipeDataId, json.encode(closestAliothPipeData))
             end
 
@@ -142,6 +143,7 @@ end
     draws the visualization for the pipe given in the parameters
 ]]--
 function draw(planet1, planet2, location, distance)
+    local safezoneHeight = 500000
     local shipWidth = 12
     local shipHeight = 10
 
@@ -168,12 +170,12 @@ function draw(planet1, planet2, location, distance)
     local pipeLengthScaled = pipe:len() / scale
 
     local origRadiusScaled = planet1.radius / scale
-    local origAtmoScaled = (planet1.radius + planet1.noAtmosphericDensityAltitude) / scale
-    local origSafeZoneScaled = planet1.safeAreaEdgeAltitude / scale
+    local origAtmoScaled = (planet1.atmosphereRadius) / scale
+    local origSafeZoneScaled = safezoneHeight / scale
 
     local destRadiusScaled = planet2.radius / scale
-    local destAtmoScaled = (planet2.radius + planet2.noAtmosphericDensityAltitude) / scale
-    local destSafeZoneScaled = planet2.safeAreaEdgeAltitude / scale
+    local destAtmoScaled = (planet2.atmosphereRadius) / scale
+    local destSafeZoneScaled = safezoneHeight / scale
 
     local scannerRange = 2 * 200*1000 /scale
 
@@ -277,15 +279,15 @@ function draw(planet1, planet2, location, distance)
                 L ]]..distLeftSide..[[,]]..lowerPlanetY..[[ 
                 Z"/>
         ]] .. planetStuff .. [[
-                <text id="planet1-name" x="]]..distLeftSide..[[" y="]]..(upperPlanetY+20)..[[">]]..planet1.name..[[</text>
-                <text id="planet2-name" x="]]..distLeftSide..[[" y="]]..(lowerPlanetY-5)..[[">]]..planet2.name..[[</text>
+                <text id="planet1-name" x="]]..distLeftSide..[[" y="]]..(upperPlanetY+20)..[[">]]..planet1.name[localization]..[[</text>
+                <text id="planet2-name" x="]]..distLeftSide..[[" y="]]..(lowerPlanetY-5)..[[">]]..planet2.name[localization]..[[</text>
                 <text text-anchor="end" y="]]..(midY+10)..[[">
                     <tspan x="]]..(95 + distLeftSide)..[[" >]]..string.format("%.2f",pipePercentDone*100)..[[</tspan>  
                     <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(distance)..[[</tspan>  
                     <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-calcProportion(planet1.radius, planet2.radius, pipePercentDone, 0, false)))..[[</tspan>
-                    <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-calcProportion(planet1.radius+planet1.noAtmosphericDensityAltitude, planet2.radius+planet2.noAtmosphericDensityAltitude, pipePercentDone, 0, false)))..[[</tspan>
-                    <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-calcProportion(planet1.radius+planet1.safeAreaEdgeAltitude, planet2.radius+planet2.safeAreaEdgeAltitude, pipePercentDone, 0, false)))..[[</tspan>                    
-                    <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-calcProportion(planet1.radius+planet1.safeAreaEdgeAltitude, planet2.radius+planet2.safeAreaEdgeAltitude, pipePercentDone, 0, false)-scannerRange))..[[</tspan>
+                    <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-calcProportion(planet1.atmosphereRadius, planet2.atmosphereRadius, pipePercentDone, 0, false)))..[[</tspan>
+                    <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-calcProportion(planet1.radius+safezoneHeight, planet2.radius+safezoneHeight, pipePercentDone, 0, false)))..[[</tspan>                    
+                    <tspan x="]]..(95 + distLeftSide)..[[" dy="20">]]..formatDistance(math.max(0,distance-calcProportion(planet1.radius+safezoneHeight, planet2.radius+safezoneHeight, pipePercentDone, 0, false)-scannerRange))..[[</tspan>
                     <tspan x="]]..(95 + distLeftSide)..[[" dy="20" fill="none">0</tspan>
                 </text>
 
@@ -293,9 +295,9 @@ function draw(planet1, planet2, location, distance)
                     <tspan x="]]..(100 + distLeftSide)..[[">%</tspan>
                     <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(distance)..[[</tspan>
                     <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-calcProportion(planet1.radius, planet2.radius, pipePercentDone, 0, false)))..[[</tspan>
-                    <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-calcProportion(planet1.radius+planet1.noAtmosphericDensityAltitude, planet2.radius+planet2.noAtmosphericDensityAltitude, pipePercentDone, 0, false)))..[[</tspan>
-                    <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-calcProportion(planet1.radius+planet1.safeAreaEdgeAltitude, planet2.radius+planet2.safeAreaEdgeAltitude, pipePercentDone, 0, false)))..[[</tspan>
-                    <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-calcProportion(planet1.radius+planet1.safeAreaEdgeAltitude, planet2.radius+planet2.safeAreaEdgeAltitude, pipePercentDone, 0, false)-scannerRange))..[[</tspan>
+                    <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-calcProportion(planet1.atmosphereRadius, planet2.atmosphereRadius, pipePercentDone, 0, false)))..[[</tspan>
+                    <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-calcProportion(planet1.radius+safezoneHeight, planet2.radius+safezoneHeight, pipePercentDone, 0, false)))..[[</tspan>
+                    <tspan x="]]..(100 + distLeftSide)..[[" dy="20">]]..unitDistance(math.max(0,distance-calcProportion(planet1.radius+safezoneHeight, planet2.radius+safezoneHeight, pipePercentDone, 0, false)-scannerRange))..[[</tspan>
                 </text>
                 <text y="]]..(midY+10)..[[">
                     <tspan x="]]..(125 + distLeftSide)..[["></tspan>
