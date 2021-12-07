@@ -1,4 +1,5 @@
 minSpeed = 40/3.6
+safezoneHeight = 500000
 
 Pipe = {
     planet1 = nil,
@@ -29,7 +30,7 @@ function Pipe:new(planet1, planet2)
     o.pipe =  (o.planet2Center - o.planet1Center)
     o.pipeNormalized =  o.pipe:normalize()
     o.pipeLength = o.pipe:len()
-    o.isAliothPipe = planet1.name == 'Alioth' or planet2.name == 'Alioth'
+    o.isAliothPipe = planet1.name[1] == 'Alioth' or planet2.name[1] == 'Alioth'
     
     self.__index = self
     return o
@@ -38,11 +39,11 @@ end
 function Pipe:calcDistance(location)
     self.pipePercentDone = (location-self.planet1Center):dot(self.pipe) / self.pipe:dot(self.pipe)
 
-    local r = (location-self.planet1Center):dot(self.pipeNormalized) / self.pipeNormalized:dot(self.pipeNormalized)
+    local r = (location - self.planet1Center):dot(self.pipeNormalized) / self.pipeNormalized:dot(self.pipeNormalized)
     if r <= 0. then
-       return (location-self.planet1Center):len()
+       return (location - self.planet1Center):len()
     elseif r >= self.pipeLength then
-       return (location-self.planet2Center):len()
+       return (location - self.planet2Center):len()
     end
     local L = self.planet1Center + (r * self.pipeNormalized)
 
@@ -55,7 +56,7 @@ function Pipe:calcProportion(planet1Value, planet2Value, percentVisible, add)
     percentVisible = percentVisible or 0
     add = add or true
     local percent = math.max(0,math.min(1, add and (self:getPipePercentDone() + percentVisible) or (self:getPipePercentDone() - percentVisible)))
-    return planet2Value * percent + planet1Value * (1-percent)
+    return planet2Value * percent + planet1Value * (1 - percent)
 end
 
 function Pipe:calcProportionRadius(percentVisible, add)
@@ -63,11 +64,11 @@ function Pipe:calcProportionRadius(percentVisible, add)
 end
 
 function Pipe:calcProportionAtmo(percentVisible, add)
-    return self:calcProportion(self:getPlanet1().radius + self:getPlanet1().noAtmosphericDensityAltitude, self:getPlanet2().radius + self:getPlanet2().noAtmosphericDensityAltitude, percentVisible, add)
+    return self:calcProportion(self:getPlanet1().atmosphereRadius, self:getPlanet2().atmosphereRadius, percentVisible, add)
 end
 
 function Pipe:calcProportionSafezone(percentVisible, add)
-    return self:calcProportion(self:getPlanet1().radius + self:getPlanet1().safeAreaEdgeAltitude, self:getPlanet2().radius + self:getPlanet2().safeAreaEdgeAltitude, percentVisible, add)
+    return self:calcProportion(self:getPlanet1().radius + safezoneHeight, self:getPlanet2().radius + safezoneHeight, percentVisible, add)
 end
 
 function Pipe:isAliothPipe()
@@ -75,7 +76,7 @@ function Pipe:isAliothPipe()
 end
 
 function Pipe:__tostring()
-    return self.planet1.name .. ' -> '.. self.planet2.name
+    return self.planet1.name[localization] .. ' -> ' .. self.planet2.name[localization]
 end
 
 function Pipe:calcAngleToVelocity(velocityVector)
@@ -92,7 +93,7 @@ function Pipe:checkSwitch(currentLocation)
         local pipe2movement = signedRotationAngle(vec3(1,1,1), currentSpeed, self.pipeNormalized)
         system.print('moving '..tostring(self.pipeNormalized) .. ' '..tostring(currentSpeed).. ' '..pipe2movement)
 
-        if math.abs(pipe2movement) > (math.pi/2) then
+        if math.abs(pipe2movement) > (math.pi / 2) then
             system.print('switch target destination')
             self.reversed = true
         end
@@ -149,7 +150,7 @@ end
 
 function Pipe:getPipePercentDone()
     if self.reversed == true then
-        return 1.0-self.pipePercentDone
+        return 1.0 - self.pipePercentDone
     else
         return self.pipePercentDone
     end

@@ -36,11 +36,11 @@ end
 ]]--
 function calcDistance(origCenter, destCenter, location)
     local pipe = (destCenter - origCenter):normalize()
-    local r = (location-origCenter):dot(pipe) / pipe:dot(pipe)
+    local r = (location - origCenter):dot(pipe) / pipe:dot(pipe)
     if r <= 0. then
-       return (location-origCenter):len()
+       return (location - origCenter):len()
     elseif r >= (destCenter - origCenter):len() then
-       return (location-destCenter):len()
+       return (location - destCenter):len()
     end
     local L = origCenter + (r * pipe)
     pipeDistance =  (L - location):len()
