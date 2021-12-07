@@ -352,7 +352,8 @@ showClosestPipe = true --export: show the closed Warp-Pipe
 showClosestPipeDist = true --export: show the closed Warp-Pipe 
 showAliothClosestPipe = true
 showAliothClosestPipeDist = true
-showVisualization = true --export: show the svg visualization
+
+showVisualization = false --export: show the svg visualization not working correctly right now
 visualizationX = 0 --export: x position of visualization
 visualizationY = 0 --export: y position of visualization
 visualizationScale = 1.0 --export: svg scale
