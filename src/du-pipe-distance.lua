@@ -30,7 +30,7 @@ refreshPipeData = function (currentLocation)
         local nearestPlanet = nil;
 
         for obj in pairs(_stellarObjects) do
-            if (_stellarObjects[obj].type[1] == 'Planet') then
+            if (_stellarObjects[obj].type[1] == 'Planet' or _stellarObjects[obj].name[1] == 'Sanctuary') then
                 local planetCenter = vec3(_stellarObjects[obj].center)
                 local distance = vec3(currentLocation - planetCenter):len() 
 
@@ -52,9 +52,9 @@ refreshPipeData = function (currentLocation)
             nearestPipeDistance = nil
             nearestAliothPipeDistance= nil
             for obj in pairs(_stellarObjects) do
-                if (_stellarObjects[obj].type[1] == 'Planet') then
+                if (_stellarObjects[obj].type[1] == 'Planet' or _stellarObjects[obj].name[1] == 'Sanctuary') then
                     for obj2 in pairs(_stellarObjects) do
-                        if (obj2 > obj and _stellarObjects[obj2].type[1] == 'Planet') then
+                        if (obj2 > obj and (_stellarObjects[obj2].type[1] == 'Planet' or _stellarObjects[obj2].name[1] == 'Sanctuary')) then
                             pipeDistance = calcDistanceStellar(_stellarObjects[obj], _stellarObjects[obj2], currentLocation)
 
                             if nearestPipeDistance == nil or pipeDistance < nearestPipeDistance then
