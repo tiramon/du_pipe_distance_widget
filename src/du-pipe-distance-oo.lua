@@ -16,12 +16,14 @@ refreshPipeData = function (currentLocation)
         local nearestPlanet = nil;
 
         for obj in pairs(_stellarObjects) do
-            local planetCenter = vec3(_stellarObjects[obj].center)
-            local distanceSq = vec3(currentLocation - planetCenter):len2() 
+            if (_stellarObjects[obj].type[1] == 'Planet' or _stellarObjects[obj].name[1] == 'Sanctuary') then
+                local planetCenter = vec3(_stellarObjects[obj].center)
+                local distanceSq = vec3(currentLocation - planetCenter):len2() 
 
-            if (smallestDistanceSq == nil or distanceSq < smallestDistanceSq) then
-                smallestDistanceSq = distanceSq;
-                nearestPlanet = obj;
+                if (smallestDistanceSq == nil or distanceSq < smallestDistanceSq) then
+                    smallestDistanceSq = distanceSq;
+                    nearestPlanet = obj;
+                end
             end
         end
 
@@ -337,10 +339,12 @@ system.print('initializing pipes')
 pipes = {}
 local countPipes = 0
 for obj, currentPlanet1 in pairs(_stellarObjects) do
-    for obj2, currentPlanet2 in pairs(_stellarObjects) do
-        if (obj < obj2) then
-            table.insert(pipes, Pipe:new(currentPlanet1, currentPlanet2))
-            countPipes = countPipes +1
+    if (currentPlanet1.type[1] == 'Planet' or currentPlanet1.name[1] == 'Sanctuary') then
+        for obj2, currentPlanet2 in pairs(_stellarObjects) do
+            if (obj < obj2 and currentPlanet2.type[1] == 'Planet' or currentPlanet2.name[1] == 'Sanctuary') then
+                table.insert(pipes, Pipe:new(currentPlanet1, currentPlanet2))
+                countPipes = countPipes +1
+            end
         end
     end
 end

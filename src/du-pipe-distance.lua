@@ -16,12 +16,14 @@ refreshPipeData = function (currentLocation)
         local nearestPlanet = nil;
 
         for obj in pairs(_stellarObjects) do
-            local planetCenter = vec3(_stellarObjects[obj].center)
-            local distance = vec3(currentLocation - planetCenter):len() 
+            if (_stellarObjects[obj].type[1] == 'Planet' or _stellarObjects[obj].name[1] == 'Sanctuary') then
+                local planetCenter = vec3(_stellarObjects[obj].center)
+                local distance = vec3(currentLocation - planetCenter):len() 
 
-            if (smallestDistance == nil or distance < smallestDistance) then
-                smallestDistance = distance;
-                nearestPlanet = obj;
+                if (smallestDistance == nil or distance < smallestDistance) then
+                    smallestDistance = distance;
+                    nearestPlanet = obj;
+                end
             end
         end
 
@@ -41,24 +43,26 @@ refreshPipeData = function (currentLocation)
             nearestPipeDistance = nil
             nearestAliothPipeDistance= nil
             for obj, currentPlanet1 in pairs(_stellarObjects) do
-                for obj2, currentPlanet2 in pairs(_stellarObjects) do
-                    if (obj2 > obj) then
-                        pipeDistance = calcDistanceStellar(currentPlanet1, currentPlanet2, currentLocation)
+                if (currentPlanet1.type[1] == 'Planet' or currentPlanet1.name[1] == 'Sanctuary') then
+                    for obj2, currentPlanet2 in pairs(_stellarObjects) do
+                        if (obj2 > obj and (currentPlanet2.type[1] == 'Planet' or currentPlanet2.name[1] == 'Sanctuary')) then
+                            pipeDistance = calcDistanceStellar(currentPlanet1, currentPlanet2, currentLocation)
 
-                        if nearestPipeDistance == nil or pipeDistance < nearestPipeDistance then
-                            nearestPipeDistance = pipeDistance;
-                            nearestPlanet1 = currentPlanet1
-                            nearestPlanet2 = currentPlanet2
-                        end
+                            if nearestPipeDistance == nil or pipeDistance < nearestPipeDistance then
+                                nearestPipeDistance = pipeDistance;
+                                nearestPlanet1 = currentPlanet1
+                                nearestPlanet2 = currentPlanet2
+                            end
 
-                        if currentPlanet1.name[1] == "Alioth" and (nearestAliothPipeDistance == nil or pipeDistance < nearestAliothPipeDistance) then
-                            nearestAliothPipeDistance = pipeDistance;
-                            aliothPlanet1 = currentPlanet1
-                            aliothPlanet2 = currentPlanet2
+                            if currentPlanet1.name[1] == "Alioth" and (nearestAliothPipeDistance == nil or pipeDistance < nearestAliothPipeDistance) then
+                                nearestAliothPipeDistance = pipeDistance;
+                                aliothPlanet1 = currentPlanet1
+                                aliothPlanet2 = currentPlanet2
+                            end
                         end
                     end
+                    currentLocation = coroutine.yield()
                 end
-                currentLocation = coroutine.yield()
             end
             nearestPlanet1, nearestPlanet2 = switch(nearestPlanet1, nearestPlanet2, currentLocation)
             aliothPlanet1, aliothPlanet2 = switch(aliothPlanet1, aliothPlanet2, currentLocation)
