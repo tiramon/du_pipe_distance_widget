@@ -4,15 +4,7 @@
   "sourcePath": "src",
   "outputPath": "out",
   "builds": {
-    "du-pipe-distance": {
-      "name": "du-pipe-distance",
-      "slots": {
-        "core": {
-          "name": "core",
-          "type": "core"
-        }
-      }
-    },
+    
     "du-pipe-distance-oo": {
       "name": "du-pipe-distance-oo",
       "slots": {
