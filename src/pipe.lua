@@ -46,6 +46,7 @@ function Pipe:calcClosestPoint(location)
        return (location - self.planet2Center):len()
     end
     local L = self.planet1Center + (r * self.pipeNormalized)
+    return L
 end
 
 function Pipe:calcDistance(location)
