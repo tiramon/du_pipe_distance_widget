@@ -5,6 +5,53 @@ require("utils")
 
 unit.hide()
 
+function getNearestPlanet(location)
+    local smallestDistanceSq = nil;
+    local nearestPlanet = nil;
+    for obj in pairs(_stellarObjects) do
+        if (_stellarObjects[obj].type[1] == 'Planet' or _stellarObjects[obj].name[1] == 'Sanctuary') then
+            local planetCenter = vec3(_stellarObjects[obj].center)
+            local distanceSq = vec3(currentLocation - planetCenter):len2() 
+
+            if (smallestDistanceSq == nil or distanceSq < smallestDistanceSq) then
+                smallestDistanceSq = distanceSq;
+                nearestPlanet = obj;
+            end
+        end
+    end
+
+    return _stellarObjects[nearestPlanet]
+end
+
+function getNearestPipe(location)
+    local nearestPipe
+    local nearestPipeDistance = nil
+
+    for ind, pipe in pairs(pipes) do
+        local pipeDistance = pipe:calcDistance(location)
+        if nearestPipeDistance == nil or pipeDistance < nearestPipeDistance then
+            nearestPipeDistance = pipeDistance;
+            nearestPipe = pipe
+        end
+    end
+    return nearestPipe
+end
+
+function getNearestAliothPipe(location)
+    local aliothPipe
+    local nearestAliothPipeDistance = nil
+
+    for ind, pipe in pairs(pipes) do
+        local pipeDistance = pipe:calcDistance(location)
+        if pipe.isAliothPipe and (nearestAliothPipeDistance == nil or pipeDistance < nearestAliothPipeDistance) then
+            nearestAliothPipeDistance = pipeDistance;
+            aliothPipe = pipe
+        end
+    end
+    return aliothPipe
+end
+
+
 --[[
     refresh function for closest pipe calculation and visualization
     it calculates the closest pipes and depending on current speed and current velocity vector switchs origin and destination
@@ -12,23 +59,10 @@ unit.hide()
 ]]--
 refreshPipeData = function (currentLocation)
     while true do
-        local smallestDistanceSq = nil;
-        local nearestPlanet = nil;
-
-        for obj in pairs(_stellarObjects) do
-            if (_stellarObjects[obj].type[1] == 'Planet' or _stellarObjects[obj].name[1] == 'Sanctuary') then
-                local planetCenter = vec3(_stellarObjects[obj].center)
-                local distanceSq = vec3(currentLocation - planetCenter):len2() 
-
-                if (smallestDistanceSq == nil or distanceSq < smallestDistanceSq) then
-                    smallestDistanceSq = distanceSq;
-                    nearestPlanet = obj;
-                end
-            end
-        end
+        local closestPlanet = getNearestPlanet(currentLocation)
 
         if showClosestPlanet == true then
-            planetInfoData.value = _stellarObjects[nearestPlanet].name[localization]
+            planetInfoData.value = closestPlanet.name[localization]
             system.updateData(planetInfoDataId, json.encode(planetInfoData))
         end
 
@@ -37,7 +71,6 @@ refreshPipeData = function (currentLocation)
 
         if showClosestPipe == true or showClosestPipeDist == true or 
                 showAliothClosestPipe == true or showAliothClosestPipeDist == true then
-            closestPlanet = _stellarObjects[nearestPlanet]
             nearestPipeDistance = nil
             nearestAliothPipeDistance= nil
             local count = 0
@@ -66,7 +99,6 @@ refreshPipeData = function (currentLocation)
                         return;
                     end
                 end
-               
             end
 
             aliothPlanet1, aliothPlanet2 = aliothPipe:checkSwitch(currentLocation)
@@ -107,10 +139,6 @@ end
 --[[
     draws the visualization for the pipe given in the parameters
 ]]--
---[[
-    draws the visualization for the pipe given in the parameters
-]]--
-
 function draw(pipe, location, distance)
     local safezoneHeight = 500000
     local shipWidth = 12
@@ -334,6 +362,7 @@ function draw(pipe, location, distance)
         </div>]])
     
 end
+
 --init pipes
 system.print('initializing pipes')
 pipes = {}

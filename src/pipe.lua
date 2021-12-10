@@ -36,7 +36,7 @@ function Pipe:new(planet1, planet2)
     return o
 end
 
-function Pipe:calcDistance(location)
+function Pipe:calcClosestPoint(location)
     self.pipePercentDone = (location-self.planet1Center):dot(self.pipe) / self.pipe:dot(self.pipe)
 
     local r = (location - self.planet1Center):dot(self.pipeNormalized) / self.pipeNormalized:dot(self.pipeNormalized)
@@ -46,9 +46,13 @@ function Pipe:calcDistance(location)
        return (location - self.planet2Center):len()
     end
     local L = self.planet1Center + (r * self.pipeNormalized)
+end
+
+function Pipe:calcDistance(location)
+    local L = self.calcClosestPoint(location)
 
     self.pipeDistance =  (L - location):len()
-    
+
     return self.pipeDistance
 end
 
