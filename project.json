@@ -13,16 +13,8 @@
           "type": "core"
         }
       }
-    },
-    "du-pipe-ar": {
-      "name": "du-pipe-ar",
-      "slots": {
-        "core": {
-          "name": "core",
-          "type": "core"
-        }
-      }
     }
+    
   },
   "targets": {
     "development": {
